@@ -70,7 +70,7 @@ public class Connexion extends Application {
         Label messageLabel = new Label();
         messageLabel.setWrapText(true);
         messageLabel.setAlignment(Pos.CENTER);
-        messageLabel.setMaxWidth(Double.MAX_VALUE); // Prend toute la largeur
+        messageLabel.setMaxWidth(Double.MAX_VALUE);
 
         // Bouton de connexion
         Button btnConnexion = new Button("CONNEXION");
@@ -85,7 +85,7 @@ public class Connexion extends Application {
                 "-fx-background-radius: 8;"
         );
 
-        // ACTION : Se connecter
+        
         // Le bloc setOnAction reste inchangé car c'est la logique métier (l'action)
         btnConnexion.setOnAction(e -> {
             String username = usernameField.getText().trim();
@@ -154,20 +154,18 @@ public class Connexion extends Application {
         primaryStage.show();
     }
 
-    /**
-     * REDIRECTION VERS L'INTERFACE APPROPRIÉE
-     */
+   // redirection to Interface User(admin/joueur)
     private void allerVersInterface() {
         if (utilisateurConnecte.isAdmin()) {
             System.out.println("🔑 Ouverture interface ADMIN");
-            // Ouvrir l'interface Admin
-            // Assurez-vous que cette classe existe:
+            // interface Admin
+            //  classe exists??
             AdminInterface adminInterface = new AdminInterface(primaryStage, utilisateurConnecte);
             adminInterface.afficher();
         } else {
             System.out.println("🎮 Ouverture interface JOUEUR");
-            // Ouvrir l'interface Joueur
-            // Assurez-vous que cette classe existe:
+            // interface Joueur
+            //  classe exists??
             JoueurInterface joueurInterface = new JoueurInterface(primaryStage, utilisateurConnecte);
             joueurInterface.afficher();
         }
