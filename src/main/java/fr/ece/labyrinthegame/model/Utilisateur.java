@@ -5,7 +5,7 @@ public class Utilisateur {
     private int id;
     private String username;
     private String password;
-    private String role; //admin ou joueur
+    private String role; // ADMIN or JOUEUR
 
     public Utilisateur() {}
 
@@ -16,7 +16,6 @@ public class Utilisateur {
         this.role = role;
     }
 
-
     public int getId() {
         return id;
     }
@@ -25,6 +24,7 @@ public class Utilisateur {
         this.id = id;
     }
 
+    // ✅ Return plain String, not ObservableValue
     public String getUsername() {
         return username;
     }
@@ -37,7 +37,6 @@ public class Utilisateur {
         return password;
     }
 
-    // secured password
     public void setPassword(String password) {
         this.password = password;
     }
@@ -50,13 +49,13 @@ public class Utilisateur {
         this.role = role;
     }
 
-    // verification (roles)
+    // Verification
     public boolean isAdmin() {
-        return role != null && role.equals("ADMIN");
+        return "ADMIN".equalsIgnoreCase(role);
     }
 
     public boolean isJoueur() {
-        return role != null && role.equals("JOUEUR");
+        return "JOUEUR".equalsIgnoreCase(role);
     }
 
     @Override

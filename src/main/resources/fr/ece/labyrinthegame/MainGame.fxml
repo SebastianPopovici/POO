@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.canvas.Canvas?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="fr.ece.labyrinthegame.Controllers.MazeController"
+      alignment="CENTER"
+      style="-fx-background-color: #F0F0F0;">
+
+    <Canvas fx:id="canvas"
+            VBox.vgrow="ALWAYS"/>
+
+    <Label fx:id="status"
+           text="Find the key."
+           style="-fx-padding: 10; -fx-font-size: 14pt;"/>
+
+    <Button fx:id="playBtn"
+            text="Play"
+            style="-fx-padding: 8 15; -fx-font-size: 14pt;"/>
+
+</VBox>
