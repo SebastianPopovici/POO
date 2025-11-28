@@ -1,9 +1,13 @@
+
 package fr.ece.labyrinthegame;
 
-import javafx.application.Application;
-
+/**
+ * POINT D'ENTRÉE DE L'APPLICATION
+ * Ce fichier lance la page de connexion
+ */
 public class Main {
     public static void main(String[] args) {
-        Application.launch(Connexion.class, args);
+        // Lancer la page de connexion
+        Connexion.main(args);
     }
 }
