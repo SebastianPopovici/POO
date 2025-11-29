@@ -1,11 +1,14 @@
 package fr.ece.labyrinthegame;
 
-import javafx.geometry.Pos;
+import fr.ece.labyrinthegame.Controllers.MazeController;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.Alert;
 import javafx.stage.Stage;
 import fr.ece.labyrinthegame.model.Utilisateur;
+
+import java.io.IOException;
 
 public class JoueurInterface {
 
@@ -18,18 +21,23 @@ public class JoueurInterface {
     }
 
     public void afficher() {
-        // Conteneur simple
-        VBox root = new VBox();
-        root.setAlignment(Pos.CENTER);
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fr/ece/labyrinthegame/MainGame.fxml"));
+            Parent root = loader.load();
 
-        // Label de confirmation unique
-        Label confirmation = new Label("INTERFACE JOUEUR - Bienvenue: " + joueur.getUsername());
 
-        root.getChildren().add(confirmation);
+            MazeController controller = loader.getController();
+            controller.setPlayer(joueur);
 
-        // Créer la Scène et l'afficher
-        Scene scene = new Scene(root, 400, 200);
-        stage.setScene(scene);
-        stage.setTitle("Joueur Confirme");
+            Scene scene = new Scene(root);
+            stage.setScene(scene);
+            stage.setTitle("Labyrinth Game - Player: " + joueur.getUsername());
+            stage.show();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Cannot load game interface.");
+            alert.showAndWait();
+        }
     }
 }
