@@ -11,7 +11,6 @@ import fr.ece.labyrinthegame.model.Utilisateur;
 import java.io.IOException;
 
 public class JoueurInterface {
-
     private Stage stage;
     private Utilisateur joueur;
 
@@ -24,19 +23,15 @@ public class JoueurInterface {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fr/ece/labyrinthegame/MainGame.fxml"));
             Parent root = loader.load();
-
-
             MazeController controller = loader.getController();
             controller.setPlayer(joueur);
-
             Scene scene = new Scene(root);
             stage.setScene(scene);
             stage.setTitle("Labyrinth Game - Player: " + joueur.getUsername());
             stage.show();
-
         } catch (IOException e) {
             e.printStackTrace();
-            Alert alert = new Alert(Alert.AlertType.ERROR, "Cannot load game interface.");
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Impossible de charger l'interface de jeu.");
             alert.showAndWait();
         }
     }

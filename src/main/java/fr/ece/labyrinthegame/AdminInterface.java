@@ -4,191 +4,283 @@ import fr.ece.labyrinthegame.dao.MazeDAO;
 import fr.ece.labyrinthegame.dao.UtilisateurDAO;
 import fr.ece.labyrinthegame.model.Labyrinthe;
 import fr.ece.labyrinthegame.model.Utilisateur;
-import javafx.beans.property.SimpleIntegerProperty;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
-import java.util.List;
-
 public class AdminInterface {
+    private final Stage primaryStage;
+    private final Utilisateur admin;
+    private final UtilisateurDAO utilisateurDAO;
+    private final MazeDAO mazeDAO;
 
-    private Stage stage;
-    private Utilisateur admin;
-
-    private UtilisateurDAO userDao = new UtilisateurDAO();
-    private MazeDAO mazeDao = new MazeDAO();
-
-    private TableView<Utilisateur> userTable;
-    private ObservableList<Utilisateur> userList;
-
-    private TableView<Labyrinthe> mazeTable;
-    private ObservableList<Labyrinthe> mazeList;
-
-    public AdminInterface(Stage stage, Utilisateur admin) {
-        this.stage = stage;
+    public AdminInterface(Stage primaryStage, Utilisateur admin) {
+        this.primaryStage = primaryStage;
         this.admin = admin;
+        this.utilisateurDAO = new UtilisateurDAO();
+        this.mazeDAO = new MazeDAO();
     }
 
     public void afficher() {
-        VBox root = new VBox(15);
-        root.setPadding(new Insets(15));
+        afficherMenuPrincipal();
+    }
+
+    // Affiche le menu principal
+    private void afficherMenuPrincipal() {
+        VBox root = new VBox(30);
+        root.setPadding(new Insets(60));
         root.setAlignment(Pos.TOP_CENTER);
         root.setStyle("-fx-background-color: #0b1a29;");
 
+        Label titre = new Label("PANNEAU ADMINISTRATEUR");
+        titre.setStyle("-fx-font-size: 42px; -fx-font-weight: bold; -fx-text-fill: #FF5733;");
 
-        Label title = new Label("ADMIN PANEL - " + admin.getUsername());
-        title.setStyle("-fx-background-color: #0b1a;");
+        Label sousTitre = new Label("Bienvenue, " + admin.getUsername() + " !");
+        sousTitre.setStyle("-fx-font-size: 20px; -fx-text-fill: #8BC34A;");
 
-        // ------------------- USER TABLE -------------------
-        userTable = new TableView<>();
-        TableColumn<Utilisateur, Integer> idCol = new TableColumn<>("ID");
-        idCol.setCellValueFactory(cellData -> new SimpleIntegerProperty(cellData.getValue().getId()).asObject());
-
-        TableColumn<Utilisateur, String> usernameCol = new TableColumn<>("Username");
-        usernameCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getUsername()));
-
-        TableColumn<Utilisateur, String> roleCol = new TableColumn<>("Role");
-        roleCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getRole()));
-
-        userTable.getColumns().addAll(idCol, usernameCol, roleCol);
-        userTable.setPrefHeight(200);
-        refreshUserList();
-
-        // Add User Section
-        HBox addUserBox = new HBox(10);
-        addUserBox.setAlignment(Pos.CENTER);
-
-        TextField newUserField = new TextField();
-        newUserField.setPromptText("New username");
-
-        PasswordField newPassField = new PasswordField();
-        newPassField.setPromptText("Password");
-
-        Button addUserBtn = new Button("Add Player");
-        addUserBtn.setOnAction(e -> {
-            String username = newUserField.getText().trim();
-            String password = newPassField.getText().trim();
-            if (!username.isEmpty() && !password.isEmpty()) {
-                boolean success = userDao.creerJoueur(username, password);
-                if (success) {
-                    refreshUserList();
-                    newUserField.clear();
-                    newPassField.clear();
-                } else {
-                    showAlert("Error", "Could not create player. Maybe username exists?");
-                }
-            }
+        Button btnDeconnexion = new Button("DÉCONNEXION");
+        btnDeconnexion.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 12px 30px; -fx-background-radius: 8;");
+        btnDeconnexion.setOnAction(e -> {
+            Connexion connexion = new Connexion();
+            connexion.start(primaryStage);
         });
 
-        addUserBox.getChildren().addAll(newUserField, newPassField, addUserBtn);
+        VBox formulaire = new VBox(20);
+        formulaire.setAlignment(Pos.CENTER);
+        formulaire.setPadding(new Insets(40));
+        formulaire.setMaxWidth(500);
+        formulaire.setStyle("-fx-background-color: #1a2c3e; -fx-background-radius: 12; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 0);");
 
-        // Delete User Button
-        Button deleteUserBtn = new Button("Delete Selected Player");
-        deleteUserBtn.setOnAction(e -> {
-            Utilisateur selected = userTable.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                boolean success = userDao.supprimerJoueur(selected.getId());
-                if (success) refreshUserList();
-                else showAlert("Error", "Could not delete player.");
-            }
-        });
+        Button btnGererUtilisateurs = new Button("GÉRER LES UTILISATEURS");
+        btnGererUtilisateurs.setPrefWidth(300);
+        btnGererUtilisateurs.setAlignment(Pos.CENTER);
+        btnGererUtilisateurs.setStyle("-fx-background-color: #00d4ff; -fx-text-fill: #0b1a29; -fx-font-size: 18px; -fx-font-weight: bold; -fx-padding: 15px 30px; -fx-background-radius: 8;");
+        btnGererUtilisateurs.setOnAction(e -> afficherGestionUtilisateurs());
 
-        // ------------------- MAZE TABLE -------------------
-        mazeTable = new TableView<>();
-        TableColumn<Labyrinthe, Integer> mazeIdCol = new TableColumn<>("ID");
-        mazeIdCol.setCellValueFactory(cellData -> new SimpleIntegerProperty(cellData.getValue().getId()).asObject());
+        Button btnGererLabyrinthes = new Button("GÉRER LES LABYRINTHES");
+        btnGererLabyrinthes.setPrefWidth(300);
+        btnGererLabyrinthes.setAlignment(Pos.CENTER);
+        btnGererLabyrinthes.setStyle("-fx-background-color: #00d4ff; -fx-text-fill: #0b1a29; -fx-font-size: 18px; -fx-font-weight: bold; -fx-padding: 15px 30px; -fx-background-radius: 8;");
+        btnGererLabyrinthes.setOnAction(e -> afficherGestionLabyrinthes());
 
-        TableColumn<Labyrinthe, String> mazeGridCol = new TableColumn<>("Grid");
-        mazeGridCol.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getGrid()));
+        formulaire.getChildren().addAll(btnGererUtilisateurs, btnGererLabyrinthes);
 
-        mazeTable.getColumns().addAll(mazeIdCol, mazeGridCol);
-        mazeTable.setPrefHeight(200);
-        refreshMazeList();
+        root.getChildren().addAll(titre, sousTitre, btnDeconnexion, formulaire);
 
-        // Add Maze Section
-        HBox addMazeBox = new HBox(10);
-        addMazeBox.setAlignment(Pos.CENTER);
+        Label messageLabel = new Label("Sélectionnez une action pour commencer.");
+        messageLabel.setStyle("-fx-text-fill: #8BC34A; -fx-font-size: 16px; -fx-font-weight: bold;");
+        messageLabel.setMaxWidth(Double.MAX_VALUE);
+        messageLabel.setAlignment(Pos.CENTER);
+        root.getChildren().add(messageLabel);
 
-        TextField mazeIdField = new TextField();
-        mazeIdField.setPromptText("Maze ID (integer)");
+        Scene scene = new Scene(root, 800, 600);
+        primaryStage.setTitle("Panneau Admin - " + admin.getUsername());
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
 
-        TextField mazeGridField = new TextField();
-        mazeGridField.setPromptText("Grid JSON (e.g., [[0,1],[2,0]])");
+    // Affiche l'interface de gestion des utilisateurs
+    private void afficherGestionUtilisateurs() {
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(30));
+        root.setAlignment(Pos.TOP_CENTER);
+        root.setStyle("-fx-background-color: #0b1a29;");
 
-        Button addMazeBtn = new Button("Add Maze");
-        addMazeBtn.setOnAction(e -> {
-            try {
-                int id = Integer.parseInt(mazeIdField.getText().trim());
-                String grid = mazeGridField.getText().trim();
-                if (!grid.isEmpty()) {
-                    boolean success = mazeDao.addMaze(id, grid);
-                    if (success) {
-                        showAlert("Success", "Maze added!");
-                        mazeIdField.clear();
-                        mazeGridField.clear();
-                        refreshMazeList();
-                    } else showAlert("Error", "Failed to add maze.");
-                }
-            } catch (NumberFormatException ex) {
-                showAlert("Error", "Maze ID must be an integer.");
-            }
-        });
+        Label titre = new Label("GESTION DES UTILISATEURS");
+        titre.setStyle("-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: #FF5733;");
 
-        addMazeBox.getChildren().addAll(mazeIdField, mazeGridField, addMazeBtn);
+        Button btnRetour = new Button("← RETOUR AU MENU");
+        btnRetour.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 8px 20px; -fx-background-radius: 6;");
+        btnRetour.setOnAction(e -> afficherMenuPrincipal());
 
-        // Delete Maze Button
-        Button deleteMazeBtn = new Button("Delete Selected Maze");
-        deleteMazeBtn.setOnAction(e -> {
-            Labyrinthe selected = mazeTable.getSelectionModel().getSelectedItem();
-            if (selected != null) {
-                boolean success = mazeDao.supprimerMaze(selected.getId());
-                if (success) refreshMazeList();
-                else showAlert("Error", "Could not delete maze.");
-            }
-        });
+        TableView<Utilisateur> tableUtilisateurs = new TableView<>();
+        tableUtilisateurs.setStyle("-fx-background-color: #1a2c3e; -fx-control-inner-background: #1a2c3e; -fx-text-fill: #FFEB3B;");
 
-        // ------------------- ADD ALL COMPONENTS -------------------
-        root.getChildren().addAll(
-                title,
-                new Label("Users"),
-                userTable,
-                addUserBox,
-                deleteUserBtn,
-                new Label("Mazes"),
-                mazeTable,
-                addMazeBox,
-                deleteMazeBtn
+        TableColumn<Utilisateur, Integer> colId = new TableColumn<>("ID");
+        colId.setCellValueFactory(new PropertyValueFactory<>("id"));
+        colId.setPrefWidth(50);
+
+        TableColumn<Utilisateur, String> colUsername = new TableColumn<>("Nom d'utilisateur");
+        colUsername.setCellValueFactory(new PropertyValueFactory<>("username"));
+        colUsername.setPrefWidth(150);
+
+        TableColumn<Utilisateur, String> colRole = new TableColumn<>("Rôle");
+        colRole.setCellValueFactory(new PropertyValueFactory<>("role"));
+        colRole.setPrefWidth(100);
+
+        tableUtilisateurs.getColumns().addAll(colId, colUsername, colRole);
+
+        ObservableList<Utilisateur> utilisateurs = FXCollections.observableList(utilisateurDAO.getAllUtilisateurs());
+        tableUtilisateurs.setItems(utilisateurs);
+        tableUtilisateurs.setStyle(
+                "-fx-background-color: #e6f2ff;" + // Fond bleu clair
+                        "-fx-control-inner-background: #e6f2ff;" +
+                        "-fx-text-fill: #000;" + // Texte en noir
+                        "-fx-font-size: 13px;" +
+                        "-fx-font-family: monospace;" // Police monospace pour le JSON
         );
 
-        Scene scene = new Scene(root, 700, 700);
+        HBox boutonsAction = new HBox(15);
+        boutonsAction.setAlignment(Pos.CENTER);
+        boutonsAction.setPadding(new Insets(15, 0, 0, 0));
+
+        Button btnSupprimer = new Button("SUPPRIMER");
+        btnSupprimer.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10px 20px; -fx-background-radius: 6;");
+        btnSupprimer.setOnAction(e -> {
+            Utilisateur selected = tableUtilisateurs.getSelectionModel().getSelectedItem();
+            if (selected != null && utilisateurDAO.supprimerUtilisateur(selected.getId())) {
+                utilisateurs.remove(selected);
+                afficherMessage(root, "✅ Utilisateur supprimé avec succès !", true);
+            } else {
+                afficherMessage(root, "❌ Échec de la suppression.", false);
+            }
+        });
+
+        Button btnPromouvoir = new Button("PROMOUVOIR ADMIN");
+        btnPromouvoir.setStyle("-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10px 20px; -fx-background-radius: 6;");
+        btnPromouvoir.setOnAction(e -> {
+            Utilisateur selected = tableUtilisateurs.getSelectionModel().getSelectedItem();
+            if (selected != null && utilisateurDAO.changerRole(selected.getId(), "ADMIN")) {
+                selected.setRole("ADMIN");
+                tableUtilisateurs.refresh();
+                afficherMessage(root, "✅ Utilisateur promu administrateur !", true);
+            } else {
+                afficherMessage(root, "❌ Échec de la promotion.", false);
+            }
+        });
+
+        boutonsAction.getChildren().addAll(btnSupprimer, btnPromouvoir);
+
+        root.getChildren().addAll(titre, btnRetour, tableUtilisateurs, boutonsAction);
+
+        Scene scene = new Scene(root, 800, 600);
+        primaryStage.setScene(scene);
+    }
+
+    // Affiche l'interface de gestion des labyrinthes
+    private void afficherGestionLabyrinthes() {
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(30));
+        root.setAlignment(Pos.TOP_CENTER);
+        root.setStyle("-fx-background-color: #0b1a29;");
+
+        Label titre = new Label("GESTION DES LABYRINTHES");
+        titre.setStyle("-fx-font-size: 36px; -fx-font-weight: bold; -fx-text-fill: #FF5733;");
+
+        Button btnRetour = new Button("← RETOUR AU MENU");
+        btnRetour.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 8px 20px; -fx-background-radius: 6;");
+        btnRetour.setOnAction(e -> afficherMenuPrincipal());
+
+        TableView<Labyrinthe> tableLabyrinthes = new TableView<>();
+        tableLabyrinthes.setStyle("-fx-background-color: #1a2c3e; -fx-control-inner-background: #1a2c3e; -fx-text-fill: #FFEB3B;");
+
+        TableColumn<Labyrinthe, Integer> colId = new TableColumn<>("ID");
+        colId.setCellValueFactory(new PropertyValueFactory<>("id"));
+        colId.setPrefWidth(50);
+
+        TableColumn<Labyrinthe, String> colGrid = new TableColumn<>("Grille (JSON)");
+        colGrid.setCellValueFactory(new PropertyValueFactory<>("grid"));
+        colGrid.setPrefWidth(400);
+
+        tableLabyrinthes.getColumns().addAll(colId, colGrid);
+
+        ObservableList<Labyrinthe> labyrinthes = FXCollections.observableList(mazeDAO.getAllMazes());
+        tableLabyrinthes.setItems(labyrinthes);
+        tableLabyrinthes.setStyle(
+                "-fx-background-color: #e6f2ff;" + // Fond bleu clair
+                        "-fx-control-inner-background: #e6f2ff;" +
+                        "-fx-text-fill: #000000;" + // Texte en noir
+                        "-fx-font-size: 13px;" +
+                        "-fx-font-family: monospace;" // Police monospace pour le JSON
+        );
+
+
+        HBox boutonsAction = new HBox(15);
+        boutonsAction.setAlignment(Pos.CENTER);
+        boutonsAction.setPadding(new Insets(15, 0, 0, 0));
+
+        Button btnSupprimer = new Button("SUPPRIMER");
+        btnSupprimer.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10px 20px; -fx-background-radius: 6;");
+        btnSupprimer.setOnAction(e -> {
+            Labyrinthe selected = tableLabyrinthes.getSelectionModel().getSelectedItem();
+            if (selected != null && mazeDAO.supprimerMaze(selected.getId())) {
+                labyrinthes.remove(selected);
+                afficherMessage(root, "✅ Labyrinthe supprimé avec succès !", true);
+            } else {
+                afficherMessage(root, "❌ Échec de la suppression.", false);
+            }
+        });
+
+        Button btnAfficher = new Button("AFFICHER");
+        btnAfficher.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10px 20px; -fx-background-radius: 6;");
+        btnAfficher.setOnAction(e -> {
+            Labyrinthe selected = tableLabyrinthes.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                afficherLabyrinthe(selected.getGrid());
+            } else {
+                afficherMessage(root, "⚠️ Veuillez sélectionner un labyrinthe.", false);
+            }
+        });
+
+        boutonsAction.getChildren().addAll(btnSupprimer, btnAfficher);
+
+        root.getChildren().addAll(titre, btnRetour, tableLabyrinthes, boutonsAction);
+
+        Scene scene = new Scene(root, 800, 600);
+        primaryStage.setScene(scene);
+    }
+
+    // Affiche la grille d'un labyrinthe
+    private void afficherLabyrinthe(String gridJson) {
+        Stage stage = new Stage();
+        VBox root = new VBox(20);
+        root.setPadding(new Insets(20));
+        root.setAlignment(Pos.CENTER);
+        root.setStyle("-fx-background-color: #0b1a29;");
+
+        Label titre = new Label("GRILLE DU LABYRINTHE");
+        titre.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #FF5733;");
+
+        TextArea gridArea = new TextArea(gridJson);
+        gridArea.setEditable(false);
+        gridArea.setStyle("-fx-font-family: monospace; -fx-font-size: 14px; -fx-background-color: #1a2c3e; -fx-text-fill: #03A9F4;");
+
+        gridArea.setPrefSize(400, 300);
+
+        Button btnFermer = new Button("FERMER");
+        btnFermer.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10px 20px; -fx-background-radius: 6;");
+        btnFermer.setOnAction(e -> stage.close());
+
+        root.getChildren().addAll(titre, gridArea, btnFermer);
+
+        Scene scene = new Scene(root, 500, 400);
+        stage.setTitle("Visualisation du Labyrinthe");
         stage.setScene(scene);
-        stage.setTitle("Admin Panel");
         stage.show();
     }
 
-    private void refreshUserList() {
-        List<Utilisateur> joueurs = userDao.getAllJoueurs();
-        userList = FXCollections.observableArrayList(joueurs);
-        userTable.setItems(userList);
-    }
+    // Affiche un message en bas de l'interface
+    private void afficherMessage(VBox root, String message, boolean succes) {
+        Label messageLabel = new Label(message);
+        messageLabel.setStyle("-fx-text-fill: " + (succes ? "#2ecc71" : "#e74c3c") + "; -fx-font-size: 16px; -fx-font-weight: bold;");
+        messageLabel.setAlignment(Pos.CENTER);
+        messageLabel.setMaxWidth(Double.MAX_VALUE);
 
-    private void refreshMazeList() {
-        List<Labyrinthe> mazes = mazeDao.getAllMazes();
-        mazeList = FXCollections.observableArrayList(mazes);
-        mazeTable.setItems(mazeList);
-    }
+        for (int i = root.getChildren().size() - 1; i >= 0; i--) {
+            if (root.getChildren().get(i) instanceof Label) {
+                Label label = (Label) root.getChildren().get(i);
+                if (label.getStyle().contains("-fx-text-fill:")) {
+                    root.getChildren().remove(i);
+                }
+            }
+        }
 
-    private void showAlert(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setContentText(message);
-        alert.showAndWait();
+        root.getChildren().add(messageLabel);
     }
 }

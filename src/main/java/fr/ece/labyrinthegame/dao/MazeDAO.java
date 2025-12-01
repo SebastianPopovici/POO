@@ -1,7 +1,6 @@
 package fr.ece.labyrinthegame.dao;
 
 import fr.ece.labyrinthegame.model.Labyrinthe;
-import com.google.gson.Gson;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -10,19 +9,18 @@ import java.util.Random;
 
 public class MazeDAO {
 
-    private final String url = "jdbc:mysql://localhost:3306/labyrinthe";
+    private final String url = "jdbc:mysql://localhost:3306/Labyrinthe";
     private final String user = "root";
     private final String pass = "";
 
-    private final Gson gson = new Gson();
-
     // ------------------ ADD MAZE ------------------
     public boolean addMaze(int id, String gridJson) {
-        String sql = "INSERT INTO maze (grille) VALUES (?)";
+        String sql = "INSERT INTO mazes (id, grid) VALUES (?, ?)";
         try (Connection conn = DriverManager.getConnection(url, user, pass);
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, gridJson);
+            stmt.setInt(1, id);
+            stmt.setString(2, gridJson);
             int affected = stmt.executeUpdate();
             return affected == 1;
 
@@ -34,7 +32,7 @@ public class MazeDAO {
 
     // ------------------ GET RANDOM MAZE ------------------
     public int[][] getRandomMaze() {
-        String sql = "SELECT grille FROM maze";
+        String sql = "SELECT grid FROM mazes";
         List<String> grids = new ArrayList<>();
 
         try (Connection conn = DriverManager.getConnection(url, user, pass);
@@ -42,7 +40,7 @@ public class MazeDAO {
              ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
-                grids.add(rs.getString("grille"));
+                grids.add(rs.getString("grid"));
             }
 
         } catch (SQLException e) {
@@ -61,12 +59,29 @@ public class MazeDAO {
 
     // ------------------ HELPER: parse JSON string ------------------
     private int[][] parseGridJson(String json) {
-        return gson.fromJson(json, int[][].class);
-    }
+        // Example: "[[0,1,0],[2,0,3]]"
+        json = json.replaceAll("\\[|\\]", ""); // remove brackets
+        String[] rows = json.split(",");
 
-    // ------------------ DELETE MAZE ------------------
+        // Count rows and columns
+        int rowCount = (int) json.chars().filter(ch -> ch == ',').count() / (rows.length / rows.length) + 1;
+        int colCount = rows.length / rowCount;
+
+        int[][] maze = new int[rowCount][colCount];
+
+        int r = 0, c = 0;
+        for (String s : rows) {
+            maze[r][c] = Integer.parseInt(s.trim());
+            c++;
+            if (c == colCount) {
+                c = 0;
+                r++;
+            }
+        }
+        return maze;
+    }
     public boolean supprimerMaze(int id) {
-        String sql = "DELETE FROM maze WHERE id = ?";
+        String sql = "DELETE FROM mazes WHERE id = ?";
         try (Connection conn = DriverManager.getConnection(url, user, pass);
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
@@ -77,19 +92,19 @@ public class MazeDAO {
         }
     }
 
-    // ------------------ GET ALL MAZES ------------------
     public List<Labyrinthe> getAllMazes() {
         List<Labyrinthe> mazes = new ArrayList<>();
-        String sql = "SELECT * FROM maze";
+        String sql = "SELECT * FROM mazes";
         try (Connection conn = DriverManager.getConnection(url, user, pass);
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                mazes.add(new Labyrinthe(rs.getInt("id"), rs.getString("grille")));
+                mazes.add(new Labyrinthe(rs.getInt("id"), rs.getString("grid")));
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return mazes;
     }
+
 }
