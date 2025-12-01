@@ -1,5 +1,6 @@
 package fr.ece.labyrinthegame;
 
+import fr.ece.labyrinthegame.Controllers.JoueurInterface;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
