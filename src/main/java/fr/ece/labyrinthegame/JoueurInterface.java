@@ -1,11 +1,17 @@
-package fr.ece.labyrinthegame.Controllers;
+package fr.ece.labyrinthegame;
 
-import fr.ece.labyrinthegame.model.Utilisateur;
+import fr.ece.labyrinthegame.Controllers.MazeController;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.stage.Stage;
+import fr.ece.labyrinthegame.model.Utilisateur;
+
+import java.io.IOException;
 
 public class JoueurInterface {
+
     private Stage stage;
     private Utilisateur joueur;
 
@@ -17,19 +23,21 @@ public class JoueurInterface {
     public void afficher() {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fr/ece/labyrinthegame/MainGame.fxml"));
-            Scene scene = new Scene(loader.load());
+            Parent root = loader.load();
+
 
             MazeController controller = loader.getController();
             controller.setPlayer(joueur);
-            controller.connectScene(scene);
 
+            Scene scene = new Scene(root);
             stage.setScene(scene);
-            stage.setTitle("Labyrinthe - Joueur");
+            stage.setTitle("Labyrinth Game - Player: " + joueur.getUsername());
             stage.show();
 
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Cannot load game interface.");
+            alert.showAndWait();
         }
     }
 }
-
