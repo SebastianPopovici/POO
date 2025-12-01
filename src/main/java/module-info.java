@@ -4,6 +4,7 @@ module fr.ece.labyrinthegame {
     requires java.sql;
     requires com.google.gson;
 
+
     // Allow FXMLLoader to access FXML controllers
     opens fr.ece.labyrinthegame.Controllers to javafx.fxml;
     opens fr.ece.labyrinthegame to javafx.fxml; // if you have FXML in root package
