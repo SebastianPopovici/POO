@@ -1,6 +1,7 @@
 package fr.ece.labyrinthegame.model;
 
-public class Utilisateur {
+public class Utilisateur
+{
 
     private int id;
     private String username;
@@ -9,35 +10,42 @@ public class Utilisateur {
 
     public Utilisateur() {}
 
-    public Utilisateur(int id, String username, String password, String role) {
+    public Utilisateur(int id, String username, String password, String role)
+    {
         this.id = id;
         this.username = username;
         this.password = password;
         this.role = role;
     }
 
-    public int getId() {
+    public int getId()
+    {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(int id)
+    {
         this.id = id;
     }
 
     // ✅ Return plain String, not ObservableValue
-    public String getUsername() {
+    public String getUsername()
+    {
         return username;
     }
 
-    public void setUsername(String username) {
+    public void setUsername(String username)
+    {
         this.username = username;
     }
 
-    public String getPassword() {
+    public String getPassword()
+    {
         return password;
     }
 
-    public void setPassword(String password) {
+    public void setPassword(String password)
+    {
         this.password = password;
     }
 

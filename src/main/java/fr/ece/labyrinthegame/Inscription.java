@@ -18,7 +18,7 @@ public class Inscription {
     }
 
     public void afficher() {
-        // Conteneur principal
+        // page
         VBox root = new VBox(30);
         root.setPadding(new Insets(60));
         root.setAlignment(Pos.CENTER);
@@ -30,16 +30,16 @@ public class Inscription {
         sousTitre.setStyle("-fx-font-size: 20px; -fx-text-fill: #85929e;");
 
 
-        // Champs de saisie
+
         TextField usernameField = new TextField();
-        usernameField.setPromptText("Choisissez un nom d'utilisateur");
+        usernameField.setPromptText("Nouveau nom d'utilisateur");
         usernameField.setStyle("-fx-font-size: 15px; -fx-padding: 10; -fx-background-color: #2b3b4d; -fx-text-fill: #ffffff; -fx-border-color: #00d4ff; -fx-border-width: 0 0 1 0; -fx-background-radius: 0;");
 
         PasswordField passwordField = new PasswordField();
-        passwordField.setPromptText("Choisissez un mot de passe");
+        passwordField.setPromptText("mot de passe");
         passwordField.setStyle("-fx-font-size: 15px; -fx-padding: 10; -fx-background-color: #2b3b4d; -fx-text-fill: #ffffff; -fx-border-color: #00d4ff; -fx-border-width: 0 0 1 0; -fx-background-radius: 0;");
 
-        // Message d'erreur/succès
+
         Label messageLabel = new Label();
         messageLabel.setWrapText(true);
         messageLabel.setAlignment(Pos.CENTER);
@@ -75,13 +75,13 @@ public class Inscription {
             connexionApp.start(stage);
         });
 
-        // ACTION : Enregistrement dans la Base de Données
+                                 // Enregistrement dans la Base de Données
         btnValider.setOnAction(e -> {
             String username = usernameField.getText().trim();
             String password = passwordField.getText();
 
             if (username.isEmpty() || password.isEmpty()) {
-                messageLabel.setText("⚠️ Veuillez remplir tous les champs.");
+                messageLabel.setText(" Veuillez remplir tous les champs.");
                 messageLabel.setStyle("-fx-text-fill: #e74c3c;");
                 return;
             }
@@ -90,13 +90,13 @@ public class Inscription {
 
             // Appelle la méthode DAO pour créer le joueur avec le rôle 'JOUEUR'
             if (dao.creerJoueur(username, password)) {
-                messageLabel.setText("✅ Compte créé avec succès! Vous pouvez vous connecter.");
+                messageLabel.setText(" Compte créé avec succès! Vous pouvez vous connecter.");
                 messageLabel.setStyle("-fx-text-fill: #2ecc71;");
                 usernameField.clear();
                 passwordField.clear();
             } else {
-                // Échec si le nom d'utilisateur est déjà pris ou s'il y a une erreur BD
-                messageLabel.setText("❌ Échec de la création. Le nom d'utilisateur est peut-être déjà utilisé.");
+                                   // Échec si le username  existes(bd error)
+                messageLabel.setText(" Échec de la création. Le nom d'utilisateur est peut-être déjà utilisé.");
                 messageLabel.setStyle("-fx-text-fill: #e74c3c;");
             }
         });
