@@ -1,11 +1,7 @@
 package fr.ece.labyrinthegame.Controllers;
 
-
-import fr.ece.labyrinthegame.AdminInterface;
 import fr.ece.labyrinthegame.dao.UtilisateurDAO;
 import fr.ece.labyrinthegame.model.Utilisateur;
-import fr.ece.labyrinthegame.Controllers.MazeController;
-
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -17,17 +13,10 @@ import javafx.stage.Stage;
 
 public class ConnexionController {
 
-    @FXML
-    private TextField usernameField;
+    @FXML private TextField usernameField;
+    @FXML private PasswordField passwordField;
+    @FXML private Label messageLabel;
 
-    @FXML
-    private PasswordField passwordField;
-
-    @FXML
-    private Label messageLabel;
-
-
-    // Called when the LOGIN button is clicked
     @FXML
     public void handleLogin() {
         String username = usernameField.getText().trim();
@@ -46,49 +35,33 @@ public class ConnexionController {
             return;
         }
 
-        // Get current stage from one of the fields
         Stage stage = (Stage) usernameField.getScene().getWindow();
 
-        // Admin case
-        if (user.getRole().equalsIgnoreCase("ADMIN")) {
-            AdminInterface adminUI = new AdminInterface(stage, user);
-            adminUI.afficher();
-            return;
-        }
-
-        // Player case → load MazeGame.fxml
         if (user.getRole().equalsIgnoreCase("JOUEUR")) {
             loadMazeInterface(stage, user);
-            return;
+        } else {
+            messageLabel.setText("Role not supported yet: " + user.getRole());
         }
-
-        // Unknown role
-        messageLabel.setText("Unknown role: " + user.getRole());
     }
 
-
-    private void loadMazeInterface(Stage stage, Utilisateur joueur) { // Added Utilisateur joueur
+    private void loadMazeInterface(Stage stage, Utilisateur joueur) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fr/ece/labyrinthegame/MainGame.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/MainGame.fxml"));
             BorderPane root = loader.load();
-
             MazeController controller = loader.getController();
-            Scene scene = new Scene(root);
 
-            // ***********************************************
-            // CRITICAL FIX: Pass the authenticated player!
             controller.setPlayer(joueur);
-            // ***********************************************
 
+            Scene scene = new Scene(root);
             controller.connectScene(scene);
 
-            stage.setTitle("Maze Game");
             stage.setScene(scene);
-            stage.setResizable(false);
+            stage.setTitle("Maze Game - Joueur");
+            stage.show();
 
         } catch (Exception e) {
             e.printStackTrace();
-            messageLabel.setText("Error loading Maze interface.");
+            messageLabel.setText("Maze interface not found.");
         }
     }
 }

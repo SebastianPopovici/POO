@@ -1,24 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
 
-<VBox xmlns="http://javafx.com/javafx"
-      xmlns:fx="http://javafx.com/fxml"
-      fx:controller="fr.ece.labyrinthegame.Controllers.MazeController"
-      alignment="CENTER"
-      style="-fx-background-color: #F0F0F0;">
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="fr.ece.labyrinthegame.Controllers.MazeController">
 
-    <Canvas fx:id="canvas"
-            VBox.vgrow="ALWAYS"/>
+    <top>
+        <Button fx:id="playBtn"
+                text="Play"
+                BorderPane.alignment="CENTER"/>
+    </top>
 
-    <Label fx:id="status"
-           text="Find the key."
-           style="-fx-padding: 10; -fx-font-size: 14pt;"/>
+    <center>
+        <Canvas fx:id="canvas"
+                width="650"
+                height="600"/>
+    </center>
 
-    <Button fx:id="playBtn"
-            text="Play"
-            style="-fx-padding: 8 15; -fx-font-size: 14pt;"/>
+    <bottom>
+        <Label fx:id="status"
+               text="Press Play"
+               BorderPane.alignment="CENTER"/>
+    </bottom>
 
-</VBox>
+</BorderPane>
