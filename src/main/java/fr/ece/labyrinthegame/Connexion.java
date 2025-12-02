@@ -128,7 +128,7 @@ public class Connexion extends Application {
                 btnInscription,
                 messageLabel
         );
-        HBox boutonsContainer = new HBox(20);
+        HBox boutonsContainer = new HBox(20); // espace entre les boutons
         boutonsContainer.setAlignment(Pos.CENTER);
         boutonsContainer.getChildren().addAll(btnConnexion, btnInscription);
 
@@ -145,11 +145,11 @@ public class Connexion extends Application {
 
     private void allerVersInterface() {
         if (utilisateurConnecte.isAdmin()) {
-            System.out.println("🔑 Ouverture interface ADMIN");
+            System.out.println(" Ouverture interface ADMIN");
             AdminInterface adminInterface = new AdminInterface(primaryStage, utilisateurConnecte);
             adminInterface.afficher();
         } else {
-            System.out.println("🎮 Ouverture interface JOUEUR");
+            System.out.println(" Ouverture interface JOUEUR");
             JoueurInterface joueurInterface = new JoueurInterface(primaryStage, utilisateurConnecte);
             joueurInterface.afficher();
         }
