@@ -1,33 +1,23 @@
 package fr.ece.labyrinthegame.Controllers;
 
-
-import fr.ece.labyrinthegame.AdminInterface;
 import fr.ece.labyrinthegame.dao.UtilisateurDAO;
 import fr.ece.labyrinthegame.model.Utilisateur;
-import fr.ece.labyrinthegame.Controllers.MazeController;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.BorderPane;
+import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+
+import java.util.List;
 
 public class ConnexionController {
 
-    @FXML
-    private TextField usernameField;
+    @FXML private TextField usernameField;
+    @FXML private PasswordField passwordField;
+    @FXML private Label messageLabel;
 
-    @FXML
-    private PasswordField passwordField;
-
-    @FXML
-    private Label messageLabel;
-
-
-    // Called when the LOGIN button is clicked
     @FXML
     public void handleLogin() {
         String username = usernameField.getText().trim();
@@ -46,41 +36,30 @@ public class ConnexionController {
             return;
         }
 
-        // Get current stage from one of the fields
         Stage stage = (Stage) usernameField.getScene().getWindow();
 
-        // Admin case
         if (user.getRole().equalsIgnoreCase("ADMIN")) {
-            AdminInterface adminUI = new AdminInterface(stage, user);
-            adminUI.afficher();
+            showAdminInterface(dao);
             return;
         }
 
-        // Player case → load MazeGame.fxml
         if (user.getRole().equalsIgnoreCase("JOUEUR")) {
             loadMazeInterface(stage, user);
             return;
         }
 
-        // Unknown role
         messageLabel.setText("Unknown role: " + user.getRole());
     }
 
-
-    private void loadMazeInterface(Stage stage, Utilisateur joueur) { // Added Utilisateur joueur
+    private void loadMazeInterface(Stage stage, Utilisateur joueur) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fr/ece/labyrinthegame/MainGame.fxml"));
-            BorderPane root = loader.load();
+            VBox root = loader.load();
 
             MazeController controller = loader.getController();
             Scene scene = new Scene(root);
 
-            // ***********************************************
-            // CRITICAL FIX: Pass the authenticated player!
             controller.setPlayer(joueur);
-            // ***********************************************
-
-
 
             stage.setTitle("Maze Game");
             stage.setScene(scene);
@@ -90,5 +69,62 @@ public class ConnexionController {
             e.printStackTrace();
             messageLabel.setText("Error loading Maze interface.");
         }
+    }
+
+    // ----------------- NEW: Admin Interface -----------------
+    private void showAdminInterface(UtilisateurDAO dao) {
+        Stage adminStage = new Stage();
+        adminStage.setTitle("Admin Interface");
+
+        ListView<String> userListView = new ListView<>();
+        Button deleteBtn = new Button("Delete User");
+        Button roleBtn = new Button("Change Role");
+        Button refreshBtn = new Button("Refresh List");
+
+        VBox vbox = new VBox(10, new Label("Users Management"), userListView, deleteBtn, roleBtn, refreshBtn);
+        vbox.setStyle("-fx-padding: 10; -fx-background-color: #f0f0f0;");
+
+        // Load users into the list
+        Runnable loadUsers = () -> {
+            userListView.getItems().clear();
+            List<Utilisateur> users = dao.getAllJoueurs(); // only JOUEUR
+            for (Utilisateur u : users) {
+                userListView.getItems().add(u.getId() + " - " + u.getUsername() + " (" + u.getRole() + ")");
+            }
+        };
+        loadUsers.run();
+
+        // Delete user
+        deleteBtn.setOnAction(e -> {
+            int index = userListView.getSelectionModel().getSelectedIndex();
+            if (index < 0) return;
+            List<Utilisateur> users = dao.getAllJoueurs();
+            Utilisateur u = users.get(index);
+            if (dao.supprimerJoueur(u.getId())) loadUsers.run();
+            else showAlert("Failed to delete user.");
+        });
+
+        // Change role
+        roleBtn.setOnAction(e -> {
+            int index = userListView.getSelectionModel().getSelectedIndex();
+            if (index < 0) return;
+            List<Utilisateur> users = dao.getAllJoueurs();
+            Utilisateur u = users.get(index);
+            String newRole = u.getRole().equals("JOUEUR") ? "MODERATOR" : "JOUEUR"; // example
+            if (dao.changerRole(u.getId(), newRole)) loadUsers.run();
+            else showAlert("Failed to change role.");
+        });
+
+        // Refresh list
+        refreshBtn.setOnAction(e -> loadUsers.run());
+
+        adminStage.setScene(new Scene(vbox, 400, 400));
+        adminStage.show();
+    }
+
+    private void showAlert(String msg) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setContentText(msg);
+        alert.showAndWait();
     }
 }

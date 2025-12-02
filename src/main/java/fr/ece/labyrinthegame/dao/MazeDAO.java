@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import static fr.ece.labyrinthegame.dao.DatabaseConnection.getConnection;
+
 public class MazeDAO {
 
     private final String url = "jdbc:mysql://localhost:3306/Labyrinthe";
@@ -77,17 +79,20 @@ public class MazeDAO {
 
     public List<Labyrinthe> getAllMazes() {
         List<Labyrinthe> mazes = new ArrayList<>();
-        String sql = "SELECT * FROM mazes";
-        try (Connection conn = DriverManager.getConnection(url, user, pass);
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT id, grid FROM maze")) {
+
             while (rs.next()) {
-                mazes.add(new Labyrinthe(rs.getInt("id"), rs.getString("grid")));
+                int id = rs.getInt("id");
+                String jsonGrid = rs.getString("grid");
+                mazes.add(new Labyrinthe(id, jsonGrid));
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         return mazes;
     }
+
 
 }

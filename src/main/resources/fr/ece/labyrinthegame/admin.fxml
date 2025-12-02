@@ -1,14 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
 <?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.scene.layout.AnchorPane?>
 
 <AnchorPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="fr.ece.labyrinthegame.Controllers.ConnexionController"
-            prefHeight="400.0" prefWidth="600.0">
+            prefHeight="500.0" prefWidth="500.0"
+            style="-fx-background-color: #F2D16D;">
+
+    <Label layoutX="20" layoutY="10" text="User Management"
+           style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+
+    <ListView fx:id="userListView"
+              layoutX="20" layoutY="40"
+              prefWidth="460" prefHeight="350"
+              style="-fx-border-color: #B58B45; -fx-border-width: 2px;"/>
+
+    <Button fx:id="refreshBtn" layoutX="20" layoutY="400" text="Refresh Users"
+            style="-fx-background-color: #5D3FD3; -fx-text-fill: white;"/>
+
+    <Button fx:id="deleteUserBtn" layoutX="150" layoutY="400" text="Delete Selected User"
+            style="-fx-background-color: #D9534F; -fx-text-fill: white;"/>
+
+    <ComboBox fx:id="roleComboBox" layoutX="20" layoutY="440" prefWidth="150"/>
+    <Button fx:id="changeRoleBtn" layoutX="200" layoutY="440" text="Change Role"
+            style="-fx-background-color: #5D3FD3; -fx-text-fill: white;"/>
 
 </AnchorPane>

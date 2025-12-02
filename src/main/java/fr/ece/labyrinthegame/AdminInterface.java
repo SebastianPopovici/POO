@@ -29,7 +29,6 @@ public class AdminInterface {
         afficherMenuPrincipal();
     }
 
-    // Affiche le menu principal
     private void afficherMenuPrincipal() {
         VBox root = new VBox(30);
         root.setPadding(new Insets(60));
@@ -83,7 +82,7 @@ public class AdminInterface {
         primaryStage.show();
     }
 
-    // Affiche l'interface de gestion des utilisateurs
+    // ------------------ Gestion des Utilisateurs ------------------
     private void afficherGestionUtilisateurs() {
         VBox root = new VBox(20);
         root.setPadding(new Insets(30));
@@ -97,7 +96,41 @@ public class AdminInterface {
         btnRetour.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 8px 20px; -fx-background-radius: 6;");
         btnRetour.setOnAction(e -> afficherMenuPrincipal());
 
-        // Formulaire de Création d'Utilisateur
+        ListView<String> userListView = new ListView<>();
+        userListView.setPrefHeight(200);
+
+        Runnable loadUsers = () -> {
+            userListView.getItems().clear();
+            for (Utilisateur u : utilisateurDAO.getAllJoueurs()) {
+                userListView.getItems().add(u.getId() + " - " + u.getUsername() + " (" + u.getRole() + ")");
+            }
+        };
+        loadUsers.run();
+
+        HBox actionButtons = new HBox(10);
+        actionButtons.setAlignment(Pos.CENTER);
+
+        Button btnSupprimer = new Button("Supprimer");
+        btnSupprimer.setOnAction(e -> {
+            int index = userListView.getSelectionModel().getSelectedIndex();
+            if (index < 0) return;
+            Utilisateur selectedUser = utilisateurDAO.getAllJoueurs().get(index);
+            if (utilisateurDAO.supprimerJoueur(selectedUser.getId())) loadUsers.run();
+            else afficherMessage(root, "❌ Échec de la suppression.", false);
+        });
+
+        Button btnChangerRole = new Button("Changer Rôle");
+        btnChangerRole.setOnAction(e -> {
+            int index = userListView.getSelectionModel().getSelectedIndex();
+            if (index < 0) return;
+            Utilisateur selectedUser = utilisateurDAO.getAllJoueurs().get(index);
+            String newRole = selectedUser.getRole().equals("JOUEUR") ? "MODERATOR" : "JOUEUR";
+            if (utilisateurDAO.changerRole(selectedUser.getId(), newRole)) loadUsers.run();
+            else afficherMessage(root, "❌ Échec du changement de rôle.", false);
+        });
+
+        actionButtons.getChildren().addAll(btnSupprimer, btnChangerRole);
+
         VBox creationForm = new VBox(10);
         creationForm.setAlignment(Pos.CENTER);
         creationForm.setPadding(new Insets(20));
@@ -108,18 +141,12 @@ public class AdminInterface {
 
         TextField usernameField = new TextField();
         usernameField.setPromptText("Nom d'utilisateur");
-        usernameField.setStyle("-fx-background-color: #ffffff; -fx-padding: 8px;");
-
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText("Mot de passe");
-        passwordField.setStyle("-fx-background-color: #ffffff; -fx-padding: 8px;");
-
         ComboBox<String> roleComboBox = new ComboBox<>(FXCollections.observableArrayList("JOUEUR", "ADMIN"));
         roleComboBox.setValue("JOUEUR");
-        roleComboBox.setStyle("-fx-background-color: #ffffff;");
 
         Button btnCreer = new Button("CRÉER L'UTILISATEUR");
-        btnCreer.setStyle("-fx-background-color: #00d4ff; -fx-text-fill: #0b1a29; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10px 20px; -fx-background-radius: 6;");
         btnCreer.setOnAction(e -> {
             String username = usernameField.getText();
             String password = passwordField.getText();
@@ -128,30 +155,28 @@ public class AdminInterface {
                 afficherMessage(root, "⚠️ Veuillez remplir tous les champs.", false);
                 return;
             }
-            if (utilisateurDAO.creerJoueur(username, password)) {
+            boolean success = role.equals("JOUEUR") ? utilisateurDAO.creerJoueur(username, password)
+                    : utilisateurDAO.changerRole(utilisateurDAO.getAllJoueurs().size() + 1, "ADMIN");
+            if (success) {
                 usernameField.clear();
                 passwordField.clear();
                 roleComboBox.setValue("JOUEUR");
-                afficherMessage(root, "✅ Utilisateur **" + username + "** créé avec succès en tant que **" + role + "** !", true);
+                loadUsers.run();
+                afficherMessage(root, "✅ Utilisateur " + username + " créé avec succès !", true);
             } else {
-                afficherMessage(root, "❌ Échec de la création. Le nom d'utilisateur existe peut-être déjà.", false);
+                afficherMessage(root, "❌ Échec de la création. Nom peut-être existant.", false);
             }
         });
 
         creationForm.getChildren().addAll(formTitle, usernameField, passwordField, roleComboBox, btnCreer);
 
-        // Assemblage de la Vue
-        HBox topControls = new HBox(20);
-        topControls.setAlignment(Pos.CENTER);
-        topControls.getChildren().addAll(btnRetour);
-
-        root.getChildren().addAll(titre, topControls, creationForm);
+        root.getChildren().addAll(titre, btnRetour, userListView, actionButtons, creationForm);
 
         Scene scene = new Scene(root, 800, 750);
         primaryStage.setScene(scene);
     }
 
-    // Affiche l'interface de gestion des labyrinthes
+    // ------------------ Gestion des Labyrinthes ------------------
     private void afficherGestionLabyrinthes() {
         VBox root = new VBox(20);
         root.setPadding(new Insets(30));
@@ -165,7 +190,45 @@ public class AdminInterface {
         btnRetour.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 8px 20px; -fx-background-radius: 6;");
         btnRetour.setOnAction(e -> afficherMenuPrincipal());
 
-        // Formulaire de Création de Labyrinthe
+        ListView<Labyrinthe> mazeListView = new ListView<>();
+        mazeListView.setPrefHeight(250);
+
+        // Custom cell to display ID, size, and JSON grid
+        mazeListView.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(Labyrinthe item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText("ID: " + item.getId()  + " | Grid: " + item.getJsonGrid());
+                }
+            }
+        });
+
+        // Load Mazes
+        Runnable loadMazes = () -> {
+            mazeListView.getItems().clear();
+            mazeListView.getItems().addAll(mazeDAO.getAllMazes());
+        };
+        loadMazes.run();
+
+        HBox actionButtons = new HBox(10);
+        actionButtons.setAlignment(Pos.CENTER);
+
+        Button btnSupprimer = new Button("Supprimer");
+        btnSupprimer.setOnAction(e -> {
+            Labyrinthe selectedMaze = mazeListView.getSelectionModel().getSelectedItem();
+            if (selectedMaze == null) return;
+            if (mazeDAO.supprimerMaze(selectedMaze.getId())) {
+                loadMazes.run();
+            } else {
+                afficherMessage(root, "❌ Échec de la suppression.", false);
+            }
+        });
+
+        actionButtons.getChildren().addAll(btnSupprimer);
+
         VBox creationForm = new VBox(10);
         creationForm.setAlignment(Pos.CENTER);
         creationForm.setPadding(new Insets(20));
@@ -174,26 +237,18 @@ public class AdminInterface {
         Label formTitle = new Label("Ajouter un Nouveau Labyrinthe");
         formTitle.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #FFD700;");
 
-        TextField nomField = new TextField();
-        nomField.setPromptText("Nom du Labyrinthe");
-        nomField.setStyle("-fx-background-color: #ffffff; -fx-padding: 8px;");
-
         TextField tailleField = new TextField();
         tailleField.setPromptText("Taille N (ex: 10 pour 10x10)");
-        tailleField.setStyle("-fx-background-color: #ffffff; -fx-padding: 8px;");
 
         TextArea jsonArea = new TextArea();
         jsonArea.setPromptText("Contenu JSON de la grille du labyrinthe");
         jsonArea.setPrefRowCount(4);
-        jsonArea.setStyle("-fx-background-color: #ffffff; -fx-padding: 8px;");
 
         Button btnCreer = new Button("CRÉER LE LABYRINTHE");
-        btnCreer.setStyle("-fx-background-color: #00d4ff; -fx-text-fill: #0b1a29; -fx-font-size: 14px; -fx-font-weight: bold; -fx-padding: 10px 20px; -fx-background-radius: 6;");
         btnCreer.setOnAction(e -> {
-            String nom = nomField.getText();
             String tailleStr = tailleField.getText();
             String jsonGrid = jsonArea.getText();
-            if (nom.isEmpty() || tailleStr.isEmpty() || jsonGrid.isEmpty()) {
+            if (tailleStr.isEmpty() || jsonGrid.isEmpty()) {
                 afficherMessage(root, "⚠️ Veuillez remplir tous les champs du labyrinthe.", false);
                 return;
             }
@@ -205,29 +260,24 @@ public class AdminInterface {
                 return;
             }
             if (mazeDAO.addMaze(taille, jsonGrid)) {
-                nomField.clear();
                 tailleField.clear();
                 jsonArea.clear();
-                afficherMessage(root, "✅ Labyrinthe **" + nom + "** ajouté avec succès !", true);
+                loadMazes.run();
+                afficherMessage(root, "✅ Labyrinthe ajouté avec succès !", true);
             } else {
                 afficherMessage(root, "❌ Échec de la création du labyrinthe.", false);
             }
         });
 
-        creationForm.getChildren().addAll(formTitle, nomField, tailleField, jsonArea, btnCreer);
+        creationForm.getChildren().addAll(formTitle, tailleField, jsonArea, btnCreer);
 
-        // Assemblage de la Vue
-        HBox topControls = new HBox(20);
-        topControls.setAlignment(Pos.CENTER);
-        topControls.getChildren().addAll(btnRetour);
-
-        root.getChildren().addAll(titre, topControls, creationForm);
+        root.getChildren().addAll(titre, btnRetour, mazeListView, actionButtons, creationForm);
 
         Scene scene = new Scene(root, 900, 750);
         primaryStage.setScene(scene);
     }
 
-    // Affiche un message en bas de l'interface
+    // ------------------ Messages ------------------
     private void afficherMessage(VBox root, String message, boolean succes) {
         clearMessage(root);
         Label messageLabel = new Label(message);
@@ -237,7 +287,6 @@ public class AdminInterface {
         root.getChildren().add(messageLabel);
     }
 
-    // Supprime un message affiché précédemment
     private void clearMessage(VBox root) {
         for (int i = root.getChildren().size() - 1; i >= 0; i--) {
             if (root.getChildren().get(i) instanceof Label) {
