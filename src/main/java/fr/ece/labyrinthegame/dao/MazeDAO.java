@@ -1,5 +1,6 @@
 package fr.ece.labyrinthegame.dao;
 
+import com.google.gson.Gson;
 import fr.ece.labyrinthegame.model.Labyrinthe;
 
 import java.sql.*;
@@ -59,26 +60,8 @@ public class MazeDAO {
 
     // ------------------ HELPER: parse JSON string ------------------
     private int[][] parseGridJson(String json) {
-        // Example: "[[0,1,0],[2,0,3]]"
-        json = json.replaceAll("\\[|\\]", ""); // remove brackets
-        String[] rows = json.split(",");
-
-        // Count rows and columns
-        int rowCount = (int) json.chars().filter(ch -> ch == ',').count() / (rows.length / rows.length) + 1;
-        int colCount = rows.length / rowCount;
-
-        int[][] maze = new int[rowCount][colCount];
-
-        int r = 0, c = 0;
-        for (String s : rows) {
-            maze[r][c] = Integer.parseInt(s.trim());
-            c++;
-            if (c == colCount) {
-                c = 0;
-                r++;
-            }
-        }
-        return maze;
+        Gson gson = new Gson();
+        return gson.fromJson(json, int[][].class);
     }
     public boolean supprimerMaze(int id) {
         String sql = "DELETE FROM mazes WHERE id = ?";

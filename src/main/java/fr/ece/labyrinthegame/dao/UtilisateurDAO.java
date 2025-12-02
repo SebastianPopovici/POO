@@ -1,6 +1,9 @@
 package fr.ece.labyrinthegame.dao;
 
 import fr.ece.labyrinthegame.model.Utilisateur;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -111,6 +114,8 @@ public class UtilisateurDAO {
             e.printStackTrace();
         }
         return utilisateurs;
+
+
     }
 
     // Supprime un utilisateur
@@ -139,6 +144,7 @@ public class UtilisateurDAO {
             return false;
         }
     }
+
 
 
 

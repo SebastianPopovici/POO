@@ -1,6 +1,6 @@
 package fr.ece.labyrinthegame;
 
-import fr.ece.labyrinthegame.Controllers.JoueurInterface;
+import fr.ece.labyrinthegame.JoueurInterface;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -128,7 +128,7 @@ public class Connexion extends Application {
                 btnInscription,
                 messageLabel
         );
-        HBox boutonsContainer = new HBox(20); // espace entre les boutons
+        HBox boutonsContainer = new HBox(20);
         boutonsContainer.setAlignment(Pos.CENTER);
         boutonsContainer.getChildren().addAll(btnConnexion, btnInscription);
 
