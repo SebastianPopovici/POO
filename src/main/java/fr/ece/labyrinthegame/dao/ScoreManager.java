@@ -1,55 +1,57 @@
 package fr.ece.labyrinthegame.dao;
-import java.io.*;
-import java.util.*;
-import java.sql.*;
+
 import fr.ece.labyrinthegame.model.Score;
+import fr.ece.labyrinthegame.model.Utilisateur;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ScoreManager {
+
     private static ScoreManager instance;
-    private List<Score> scores;
-    private static final String SCORE_FILE = "scores.dat"; // Fichier de sauvegarde
+    private final ScoreDAO scoreDAO;
 
     private ScoreManager() {
-        scores = new ArrayList<>();
-        loadScores(); // Charge les scores au démarrage
+        scoreDAO = new ScoreDAO();
     }
 
-    public static synchronized ScoreManager getInstance() {
+    public static ScoreManager getInstance() {
         if (instance == null) {
             instance = new ScoreManager();
         }
         return instance;
     }
 
-    // Sauvegarde les scores dans un fichier
-    private void saveScores() {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(SCORE_FILE))) {
-            oos.writeObject(scores);
-        } catch (IOException e) {
+    public int getScore(Utilisateur user) {
+        return scoreDAO.getScore(user);
+    }
+
+    public void addScore(Utilisateur user, int points) {
+        scoreDAO.addScore(user, points);
+    }
+
+    // Fixed method: fetch top scores directly from utilisateurs table
+    public List<Score> getTopScores(int limit) {
+        List<Score> scores = new ArrayList<>();
+        String sql = "SELECT username, score FROM utilisateurs " +
+                "WHERE role != 'admin' " +   // exclude admins
+                "ORDER BY score DESC LIMIT ?";
+
+        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/labyrinthe", "root", "");
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, limit);
+
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                scores.add(new Score(rs.getString("username"), rs.getInt("score")));
+            }
+        } catch (SQLException e) {
             e.printStackTrace();
         }
+        return scores;
     }
 
-    // Charge les scores depuis un fichier
-    @SuppressWarnings("unchecked")
-    private void loadScores() {
-        File file = new File(SCORE_FILE);
-        if (file.exists()) {
-            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-                scores = (List<Score>) ois.readObject();
-            } catch (IOException | ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-        }
-    }
 
-    public void addScore(Score score) {
-        scores.add(score);
-        saveScores(); // Sauvegarde après chaque ajout
-    }
-
-    public List<Score> getTopScores(int limit) {
-        scores.sort(Comparator.comparingInt(Score::getValue).reversed());
-        return scores.subList(0, Math.min(limit, scores.size()));
-    }
 }

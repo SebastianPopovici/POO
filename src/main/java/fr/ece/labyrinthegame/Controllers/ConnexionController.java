@@ -80,7 +80,7 @@ public class ConnexionController {
             controller.setPlayer(joueur);
             // ***********************************************
 
-            controller.connectScene(scene);
+
 
             stage.setTitle("Maze Game");
             stage.setScene(scene);
