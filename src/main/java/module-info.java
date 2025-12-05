@@ -3,6 +3,7 @@ module fr.ece.labyrinthegame {
     requires javafx.fxml;
     requires java.sql;
     requires com.google.gson;
+    requires mysql.connector.j;
 
 
     // Allow FXMLLoader to access FXML controllers

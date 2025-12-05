@@ -1,29 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
 <?import javafx.scene.canvas.Canvas?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 
-<BorderPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="fr.ece.labyrinthegame.Controllers.MazeController">
+<?import javafx.scene.layout.StackPane?>
+<VBox fx:controller="fr.ece.labyrinthegame.Controllers.MazeController"
+      xmlns:fx="http://javafx.com/fxml"
+      spacing="15" alignment="CENTER"
+      style="-fx-background-color: linear-gradient(to bottom, #f0f0f0, #e0e0e0); -fx-padding: 20;">
 
-    <top>
-        <Button fx:id="playBtn"
-                text="Play"
-                BorderPane.alignment="CENTER"/>
-    </top>
+    <!-- Title -->
+    <Label text="Maze Game"
+           style="-fx-font-size: 24pt; -fx-font-weight: bold;"/>
 
-    <center>
-        <Canvas fx:id="canvas"
-                width="650"
-                height="600"/>
-    </center>
+    <!-- Play Button -->
+    <Button fx:id="playBtn"
+            text="Play"
+            style="-fx-font-size: 16pt; -fx-padding: 8 20;"/>
 
-    <bottom>
-        <Label fx:id="status"
-               text="Press Play"
-               BorderPane.alignment="CENTER"/>
-    </bottom>
+    <!-- Canvas -->
+    <StackPane style="-fx-background-color: #F2D16D; -fx-padding: 10;">
+        <Canvas fx:id="canvas" width="650" height="600"/>
+    </StackPane>
 
-</BorderPane>
+    <!-- Status Label -->
+    <Label fx:id="status"
+           text="Press Play"
+           style="-fx-font-size: 14pt; -fx-font-weight: bold;"/>
+</VBox>

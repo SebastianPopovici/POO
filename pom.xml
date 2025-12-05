@@ -49,6 +49,11 @@
             <artifactId>mysql-connector-j</artifactId>
             <version>8.0.33</version> <!-- version stable et disponible -->
         </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1 </version>
+        </dependency>
     </dependencies>
 
     <build>

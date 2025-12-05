@@ -2,14 +2,15 @@ package fr.ece.labyrinthegame.Controllers;
 
 import fr.ece.labyrinthegame.dao.UtilisateurDAO;
 import fr.ece.labyrinthegame.model.Utilisateur;
+
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
-import javafx.scene.layout.BorderPane;
+import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+
+import java.util.List;
 
 public class ConnexionController {
 
@@ -37,31 +38,93 @@ public class ConnexionController {
 
         Stage stage = (Stage) usernameField.getScene().getWindow();
 
+        if (user.getRole().equalsIgnoreCase("ADMIN")) {
+            showAdminInterface(dao);
+            return;
+        }
+
         if (user.getRole().equalsIgnoreCase("JOUEUR")) {
             loadMazeInterface(stage, user);
-        } else {
-            messageLabel.setText("Role not supported yet: " + user.getRole());
+            return;
         }
+
+        messageLabel.setText("Unknown role: " + user.getRole());
     }
 
     private void loadMazeInterface(Stage stage, Utilisateur joueur) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/MainGame.fxml"));
-            BorderPane root = loader.load();
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fr/ece/labyrinthegame/MainGame.fxml"));
+            VBox root = loader.load();
+
             MazeController controller = loader.getController();
+            Scene scene = new Scene(root);
 
             controller.setPlayer(joueur);
 
-            Scene scene = new Scene(root);
-            controller.connectScene(scene);
-
+            stage.setTitle("Maze Game");
             stage.setScene(scene);
-            stage.setTitle("Maze Game - Joueur");
-            stage.show();
+            stage.setResizable(false);
 
         } catch (Exception e) {
             e.printStackTrace();
-            messageLabel.setText("Maze interface not found.");
+            messageLabel.setText("Error loading Maze interface.");
         }
+    }
+
+    // ----------------- NEW: Admin Interface -----------------
+    private void showAdminInterface(UtilisateurDAO dao) {
+        Stage adminStage = new Stage();
+        adminStage.setTitle("Admin Interface");
+
+        ListView<String> userListView = new ListView<>();
+        Button deleteBtn = new Button("Delete User");
+        Button roleBtn = new Button("Change Role");
+        Button refreshBtn = new Button("Refresh List");
+
+        VBox vbox = new VBox(10, new Label("Users Management"), userListView, deleteBtn, roleBtn, refreshBtn);
+        vbox.setStyle("-fx-padding: 10; -fx-background-color: #f0f0f0;");
+
+        // Load users into the list
+        Runnable loadUsers = () -> {
+            userListView.getItems().clear();
+            List<Utilisateur> users = dao.getAllJoueurs(); // only JOUEUR
+            for (Utilisateur u : users) {
+                userListView.getItems().add(u.getId() + " - " + u.getUsername() + " (" + u.getRole() + ")");
+            }
+        };
+        loadUsers.run();
+
+        // Delete user
+        deleteBtn.setOnAction(e -> {
+            int index = userListView.getSelectionModel().getSelectedIndex();
+            if (index < 0) return;
+            List<Utilisateur> users = dao.getAllJoueurs();
+            Utilisateur u = users.get(index);
+            if (dao.supprimerJoueur(u.getId())) loadUsers.run();
+            else showAlert("Failed to delete user.");
+        });
+
+        // Change role
+        roleBtn.setOnAction(e -> {
+            int index = userListView.getSelectionModel().getSelectedIndex();
+            if (index < 0) return;
+            List<Utilisateur> users = dao.getAllJoueurs();
+            Utilisateur u = users.get(index);
+            String newRole = u.getRole().equals("JOUEUR") ? "MODERATOR" : "JOUEUR"; // example
+            if (dao.changerRole(u.getId(), newRole)) loadUsers.run();
+            else showAlert("Failed to change role.");
+        });
+
+        // Refresh list
+        refreshBtn.setOnAction(e -> loadUsers.run());
+
+        adminStage.setScene(new Scene(vbox, 400, 400));
+        adminStage.show();
+    }
+
+    private void showAlert(String msg) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setContentText(msg);
+        alert.showAndWait();
     }
 }

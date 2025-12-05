@@ -1,8 +1,13 @@
 package fr.ece.labyrinthegame.Controllers;
 
 import fr.ece.labyrinthegame.dao.MazeDAO;
+import fr.ece.labyrinthegame.dao.ScoreDAO;
 import fr.ece.labyrinthegame.model.Utilisateur;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
@@ -10,81 +15,93 @@ import javafx.scene.control.Label;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
-import javafx.scene.Scene;
-import javafx.application.Platform;
+import javafx.stage.Stage;
+
+import java.io.IOException;
 
 public class MazeController {
-
     @FXML private Canvas canvas;
     @FXML private Label status;
     @FXML private Button playBtn;
-
     private Scene scene;
     private int[][] maze;
     private int rows, cols;
-
     private int playerCol, playerRow;
     private boolean keyCollected, gameWon;
-
-    // Temps jusqu'à l'invisibilité (en millisecondes)
     private long invisibleUntil = 0;
-
     private Utilisateur joueur;
+    private ScoreDAO scoreDAO = new ScoreDAO(); // DAO for scores
 
     @FXML
     public void initialize() {
-        // Associer l'action du bouton de jeu à la méthode startGame
         if (playBtn != null) {
-            playBtn.setOnAction(e -> startGame());
+            playBtn.setText("Play");
+            playBtn.setOnAction(e -> {
+                startGame();
+                requestCanvasFocus();
+            });
         }
-
-        // Redessiner le labyrinthe lorsque la taille du Canvas change
         if (canvas != null) {
-            canvas.widthProperty().addListener((obs, oldV, newV) -> draw());
-            canvas.heightProperty().addListener((obs, oldV, newV) -> draw());
+            canvas.widthProperty().addListener(e -> draw());
+            canvas.heightProperty().addListener(e -> draw());
+            canvas.setFocusTraversable(true);
+            canvas.setOnKeyPressed(this::handleKeyPress);
         }
     }
 
     public void setPlayer(Utilisateur joueur) {
         this.joueur = joueur;
-        // Démarrez le jeu après que l'interface a été complètement chargée
-        Platform.runLater(() -> startGame());
+        Platform.runLater(() -> {
+            startGame();
+            requestCanvasFocus();
+        });
     }
 
-    // Connecte la Scène pour gérer les événements clavier globaux
+    public void bindCanvas(Canvas canvas, Label statusLabel, Button playBtn) {
+        this.canvas = canvas;
+        this.status = statusLabel;
+        this.playBtn = playBtn;
+
+        // Bind events
+        canvas.setFocusTraversable(true);
+        canvas.widthProperty().addListener(e -> draw());
+        canvas.heightProperty().addListener(e -> draw());
+
+        playBtn.setOnAction(e -> startGame());
+
+        // Key input
+        canvas.setOnKeyPressed(this::handleKeyPress);
+    }
+
     public void connectScene(Scene sc) {
         this.scene = sc;
+        sc.setOnMouseClicked(e -> requestCanvasFocus());
+    }
 
-        if (canvas != null) {
-            canvas.setFocusTraversable(true);
-            canvas.requestFocus();
-        }
-
-        scene.setOnMouseClicked(e -> {
-            if (canvas != null) canvas.requestFocus();
-        });
-
-        scene.setOnKeyPressed(this::handleKeyPress);
+    private void requestCanvasFocus() {
+        if (canvas == null) return;
+        canvas.setFocusTraversable(true);
+        Platform.runLater(canvas::requestFocus);
     }
 
     private void handleKeyPress(KeyEvent e) {
         if (gameWon) return;
 
         int dcol = 0, drow = 0;
-        KeyCode code = e.getCode();
+        if (e.getCode() == KeyCode.UP || e.getCode() == KeyCode.W) drow = -1;
+        else if (e.getCode() == KeyCode.DOWN || e.getCode() == KeyCode.S) drow = 1;
+        else if (e.getCode() == KeyCode.LEFT || e.getCode() == KeyCode.A) dcol = -1;
+        else if (e.getCode() == KeyCode.RIGHT || e.getCode() == KeyCode.D) dcol = 1;
+        else return;
 
-        switch (code) {
-            case UP, W -> drow = -1;
-            case DOWN, S -> drow = 1;
-            case LEFT, A -> dcol = -1;
-            case RIGHT, D -> dcol = 1;
-        }
-
-        if (dcol != 0 || drow != 0)
-            movePlayer(dcol, drow);
+        movePlayer(dcol, drow);
     }
 
-    private void startGame() {
+    public void startGame() {
+        if (playBtn != null) {
+            playBtn.setDisable(true); // disable during game
+            playBtn.setText("Playing");
+        }
         loadMazeFromDatabase();
         resetPlayer();
         draw();
@@ -96,23 +113,18 @@ public class MazeController {
         keyCollected = false;
         gameWon = false;
         invisibleUntil = 0;
-        if (status != null) {
-            status.setText("Find the key.");
-        }
+        if (status != null) status.setText("Find the key.");
     }
 
     private void loadMazeFromDatabase() {
         try {
             MazeDAO dao = new MazeDAO();
-            // L'accès à la base de données doit être géré avec des threads si nécessaire
             maze = dao.getRandomMaze();
             rows = maze.length;
             cols = maze[0].length;
         } catch (Exception e) {
             e.printStackTrace();
-            if (status != null) {
-                status.setText("Could not load maze from DB.");
-            }
+            if (status != null) status.setText("Could not load maze from DB.");
         }
     }
 
@@ -120,160 +132,125 @@ public class MazeController {
         int nc = playerCol + dcol;
         int nr = playerRow + drow;
 
-        // Limiter le joueur à l'intérieur du labyrinthe
         if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) return;
 
         int tile = maze[nr][nc];
-        // Vérifier l'état d'invisibilité
         boolean canPassWalls = System.currentTimeMillis() < invisibleUntil;
 
-        // Si c'est un mur (1) ET que le joueur n'est pas invisible, on ne bouge pas
         if (tile == 1 && !canPassWalls) return;
 
-        // Gérer la tuile de sortie (3)
-        if (tile == 3) {
-            if (keyCollected) {
-                gameWon = true;
-                if (status != null) status.setText("You escaped! Congratulations.");
-                playerCol = nc;
-                playerRow = nr;
-            } else {
+        if (tile == 3) { // Exit
+            if (!keyCollected) {
                 if (status != null) status.setText("Exit locked — find the key!");
-                return; // Ne pas bouger
+                return;
             }
+            gameWon = true;
+            playerCol = nc;
+            playerRow = nr;
+            if (status != null) status.setText("You escaped!");
+
+            // Update score and show leaderboard
+            updateScore();
+            showLeaderboard();
         } else {
-            // Déplacer le joueur
             playerCol = nc;
             playerRow = nr;
         }
 
-        // Gérer la tuile de clé (2)
-        if (tile == 2) {
+        if (tile == 2) { // Key
             keyCollected = true;
-            maze[nr][nc] = 0; // Enlever la clé
+            maze[nr][nc] = 0;
             if (status != null) status.setText("Key collected! Find the exit.");
-        } else if (!gameWon) {
-            if (status != null) {
-                status.setText(keyCollected ? "Find the exit." : "Find the key.");
-            }
         }
 
         draw();
     }
 
-    /**
-     * Méthode principale de dessin, appelée à chaque mise à jour.
-     */
     private void draw() {
         if (maze == null || canvas == null) return;
-
         GraphicsContext gc = canvas.getGraphicsContext2D();
-
-        // 1. Déterminer la taille de cellule pour adapter le labyrinthe au Canvas
         double cellSize = Math.min(canvas.getWidth() / cols, canvas.getHeight() / rows);
+        double mazeW = cols * cellSize;
+        double mazeH = rows * cellSize;
+        double offsetX = (canvas.getWidth() - mazeW) / 2;
+        double offsetY = (canvas.getHeight() - mazeH) / 2;
 
-        // 2. Centrer le labyrinthe
-        double mazeWidth = cols * cellSize;
-        double mazeHeight = rows * cellSize;
-        double offsetX = (canvas.getWidth() - mazeWidth) / 2;
-        double offsetY = (canvas.getHeight() - mazeHeight) / 2;
-
-        // 3. Dessiner le fond du Canvas
-        gc.setFill(Color.web("#F2D16D")); // Fond
+        gc.setFill(Color.web("#00d4ff"));
         gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
-
-        // 4. Dessiner les tuiles (Murs, Clé, Sortie)
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 double x = offsetX + c * cellSize;
                 double y = offsetY + r * cellSize;
-                int t = maze[r][c]; // Type de tuile
-
-                // Dessin du sol
+                int t = maze[r][c];
                 gc.setFill(Color.web("#F2D16D"));
                 gc.fillRect(x, y, cellSize, cellSize);
-
-                // Dessin du Mur
-                if (t == 1) {
-                    gc.setFill(Color.web("#C19A6B"));
-                    gc.fillRect(x, y, cellSize, cellSize);
-                }
-
-                // Dessin de la Clé
-                if (t == 2) {
-                    gc.setFill(Color.web("#FFD700"));
-                    gc.fillOval(x + cellSize*0.25, y + cellSize*0.25, cellSize*0.5, cellSize*0.5);
-                }
-
-                // Dessin de la Sortie
-                if (t == 3) {
-                    gc.setFill(keyCollected ? Color.web("#DAA520") : Color.web("#8B4513"));
-                    gc.fillRect(x + cellSize*0.15, y + cellSize*0.15, cellSize*0.7, cellSize*0.7);
-                    gc.setFill(Color.BLACK);
-                    gc.fillRect(x + cellSize*0.48, y + cellSize*0.15, cellSize*0.08, cellSize*0.7);
-                }
-
-                // Bordure de cellule
+                if (t == 1) gc.setFill(Color.web("#C19A6B"));
+                if (t == 2) gc.setFill(Color.web("#FFD700"));
+                if (t == 3) gc.setFill(keyCollected ? Color.web("#DAA520") : Color.web("#8B4513"));
+                if (t != 0) gc.fillRect(x, y, cellSize, cellSize);
                 gc.setStroke(Color.web("#B58B45"));
                 gc.strokeRect(x, y, cellSize, cellSize);
             }
         }
 
-        // 5. Dessiner le joueur
         drawPlayer(gc, cellSize, offsetX, offsetY);
     }
 
-    /**
-     * Dessine l'avatar du joueur en tenant compte de l'état d'invisibilité.
-     */
     private void drawPlayer(GraphicsContext gc, double cellSize, double offsetX, double offsetY) {
-
         double px = offsetX + playerCol * cellSize + cellSize / 2.0;
         double py = offsetY + playerRow * cellSize + cellSize / 2.0;
-
-        // --- VÉRIFICATION DE L'INVISIBILITÉ ---
         boolean isInvisible = System.currentTimeMillis() < invisibleUntil;
-
-        if (isInvisible) {
-            // Lignes du joueur transparentes
-            gc.setStroke(Color.web("#000000", 0.35));
-            // Couleur de remplissage semi-transparente
-            gc.setFill(Color.web("#5D3FD3", 0.5));
-
-        } else {
-            gc.setStroke(Color.BLACK);
-            gc.setFill(Color.web("#5D3FD3")); // Couleur normale (Violet)
-        }
-
+        gc.setStroke(isInvisible ? Color.web("#000000", 0.35) : Color.BLACK);
+        gc.setFill(isInvisible ? Color.web("#5D3FD3", 0.5) : Color.web("#5D3FD3"));
         gc.setLineWidth(isInvisible ? 1 : 2);
+        gc.strokeOval(px - cellSize * 0.15, py - cellSize * 0.3, cellSize * 0.3, cellSize * 0.3);
+        gc.strokeLine(px, py - cellSize * 0.06, px, py + cellSize * 0.25);
+        gc.strokeLine(px, py, px - cellSize * 0.18, py - cellSize * 0.06);
+        gc.strokeLine(px, py, px + cellSize * 0.18, py - cellSize * 0.06);
+        gc.strokeLine(px, py + cellSize * 0.25, px - cellSize * 0.18, py + cellSize * 0.44);
+        gc.strokeLine(px, py + cellSize * 0.25, px + cellSize * 0.18, py + cellSize * 0.44);
+    }
 
-        // Tête (Oval)
-        gc.strokeOval(px - cellSize*0.15, py - cellSize*0.3, cellSize*0.3, cellSize*0.3);
+    public void activateInvisibility(long durationMillis) {
+        invisibleUntil = System.currentTimeMillis() + durationMillis;
+        draw();
+    }
 
-        // Corps
-        gc.strokeLine(px, py - cellSize*0.06, px, py + cellSize*0.25);
-
-        // Bras
-        gc.strokeLine(px, py, px - cellSize*0.18, py - cellSize*0.06);
-        gc.strokeLine(px, py, px + cellSize*0.18, py - cellSize*0.06);
-
-        // Jambes
-        gc.strokeLine(px, py + cellSize*0.25, px - cellSize*0.18, py + cellSize*0.44);
-        gc.strokeLine(px, py + cellSize*0.25, px + cellSize*0.18, py + cellSize*0.44);
-
-        // Effet visuel d'invisibilité (lueur subtile)
-        if (isInvisible) {
-            gc.setFill(Color.CYAN.deriveColor(1, 1, 1, 0.15));
-            gc.fillOval(px - cellSize*0.3, py - cellSize*0.3, cellSize*0.6, cellSize*0.6);
+    // ------------------- SCORE LOGIC -------------------
+    private void updateScore() {
+        if (joueur != null) {
+            scoreDAO.addScore(joueur, 100); // Add 100 points for completing maze
         }
     }
 
-    /**
-     * Active le mode invisibilité pour une durée donnée.
-     */
-    public void activateInvisibility(long durationMillis) {
-        this.invisibleUntil = System.currentTimeMillis() + durationMillis;
-        draw(); // Redessiner immédiatement pour montrer l'effet
+    private void showLeaderboard() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fr/ece/labyrinthegame/score.fxml"));
+            Parent root = loader.load();
+            Stage stage = new Stage();
+            stage.setTitle("Leaderboard");
+            stage.setScene(new Scene(root));
+            stage.initOwner(canvas.getScene().getWindow()); // attach to main window
+            stage.show();
+
+            // Enable Play Again button
+            if (playBtn != null) {
+                playBtn.setText("Play Again");
+                playBtn.setDisable(false);
+                playBtn.setOnAction(e -> {
+                    stage.close();  // close leaderboard
+                    startGame();    // restart game
+                    requestCanvasFocus();
+                });
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
+    public void movePlayerUp() { System.out.println("↑ Haut"); }
+    public void movePlayerDown() { System.out.println("↓ Bas"); }
+    public void movePlayerLeft() { System.out.println("← Gauche"); }
+    public void movePlayerRight() { System.out.println("→ Droite"); }
 }

@@ -1,14 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.scene.canvas.Canvas?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
 
 <AnchorPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
-            fx:controller="fr.ece.labyrinthegame.Controllers.GameController"
-            prefHeight="400.0" prefWidth="600.0">
+            fx:controller="fr.ece.labyrinthegame.Controllers.MazeController"
+            prefHeight="500.0" prefWidth="700.0"
+            style="-fx-background-color: #F2D16D;">
+
+    <!-- Status label at top -->
+    <Label fx:id="status"
+           layoutX="20" layoutY="10"
+           text="Press Play to start!"
+           style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+
+    <!-- Maze canvas -->
+    <Canvas fx:id="canvas"
+            layoutX="20" layoutY="40"
+            width="660" height="400"
+            style="-fx-border-color: #B58B45; -fx-border-width: 3px; -fx-background-color: #F2D16D;"/>
+
+    <!-- Play button -->
+    <Button fx:id="playBtn"
+            layoutX="300" layoutY="450"
+            text="Play Again"
+            style="-fx-font-size: 14px; -fx-background-color: #5D3FD3; -fx-text-fill: white; -fx-font-weight: bold;"/>
 
 </AnchorPane>

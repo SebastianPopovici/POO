@@ -144,11 +144,11 @@ public class Connexion extends Application {
 
     private void allerVersInterface() {
         if (utilisateurConnecte.isAdmin()) {
-            System.out.println("🔑 Ouverture interface ADMIN");
+            System.out.println(" Ouverture interface ADMIN");
             AdminInterface adminInterface = new AdminInterface(primaryStage, utilisateurConnecte);
             adminInterface.afficher();
         } else {
-            System.out.println("🎮 Ouverture interface JOUEUR");
+            System.out.println(" Ouverture interface JOUEUR");
             JoueurInterface joueurInterface = new JoueurInterface(primaryStage, utilisateurConnecte);
             joueurInterface.afficher();
         }
