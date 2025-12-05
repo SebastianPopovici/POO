@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<AnchorPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="fr.ece.labyrinthegame.Controllers.ScoreController"
+            prefHeight="500.0" prefWidth="700.0"
+            style="-fx-background-color: linear-gradient(to bottom, #6a11cE, #2575fc);">
+
+    <!-- Conteneur principal pour centrer les éléments -->
+    <VBox layoutX="150" layoutY="50" spacing="20" alignment="CENTER">
+        <!-- Titre -->
+        <Label text="MEILLEURS SCORES" style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: white; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 0);" />
+
+        <!-- Liste des scores avec un fond semi-transparent -->
+        <ListView fx:id="scoreListView"
+                  prefHeight="300" prefWidth="400"
+                  style="-fx-background-color: rgba(255, 255, 255, 0.9);
+                         -fx-border-color: lightblue;
+                         -fx-border-radius: 10;
+                         -fx-background-radius: 10;
+                         -fx-font-size: 16px;" />
+
+
+    </VBox>
+</AnchorPane>
