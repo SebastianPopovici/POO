@@ -20,41 +20,45 @@ import javafx.stage.Stage;
 import java.io.IOException;
 
 public class MazeController {
+
     @FXML private Canvas canvas;
     @FXML private Label status;
     @FXML private Button playBtn;
     private Scene scene;
+
     private int[][] maze;
     private int rows, cols;
     private int playerCol, playerRow;
     private boolean keyCollected, gameWon;
     private long invisibleUntil = 0;
+
     private Utilisateur joueur;
-    private ScoreDAO scoreDAO = new ScoreDAO(); // DAO for scores
+    private ScoreDAO scoreDAO = new ScoreDAO();
+
+    private Runnable onWinCallback;
+
+    public void setOnWinCallback(Runnable r) { this.onWinCallback = r; }
 
     @FXML
     public void initialize() {
+        if (canvas != null) {
+            canvas.setFocusTraversable(true);
+            canvas.setOnKeyPressed(this::handleKeyPress);
+            canvas.widthProperty().addListener(e -> draw());
+            canvas.heightProperty().addListener(e -> draw());
+        }
+
         if (playBtn != null) {
-            playBtn.setText("Play");
             playBtn.setOnAction(e -> {
                 startGame();
                 requestCanvasFocus();
             });
         }
-        if (canvas != null) {
-            canvas.widthProperty().addListener(e -> draw());
-            canvas.heightProperty().addListener(e -> draw());
-            canvas.setFocusTraversable(true);
-            canvas.setOnKeyPressed(this::handleKeyPress);
-        }
     }
 
     public void setPlayer(Utilisateur joueur) {
         this.joueur = joueur;
-        Platform.runLater(() -> {
-            startGame();
-            requestCanvasFocus();
-        });
+        Platform.runLater(this::requestCanvasFocus);
     }
 
     public void bindCanvas(Canvas canvas, Label statusLabel, Button playBtn) {
@@ -62,15 +66,10 @@ public class MazeController {
         this.status = statusLabel;
         this.playBtn = playBtn;
 
-        // Bind events
         canvas.setFocusTraversable(true);
+        canvas.setOnKeyPressed(this::handleKeyPress);
         canvas.widthProperty().addListener(e -> draw());
         canvas.heightProperty().addListener(e -> draw());
-
-        playBtn.setOnAction(e -> startGame());
-
-        // Key input
-        canvas.setOnKeyPressed(this::handleKeyPress);
     }
 
     public void connectScene(Scene sc) {
@@ -88,6 +87,7 @@ public class MazeController {
         if (gameWon) return;
 
         int dcol = 0, drow = 0;
+
         if (e.getCode() == KeyCode.UP || e.getCode() == KeyCode.W) drow = -1;
         else if (e.getCode() == KeyCode.DOWN || e.getCode() == KeyCode.S) drow = 1;
         else if (e.getCode() == KeyCode.LEFT || e.getCode() == KeyCode.A) dcol = -1;
@@ -95,16 +95,20 @@ public class MazeController {
         else return;
 
         movePlayer(dcol, drow);
+
+        // Ensure canvas keeps focus for continuous movement
+        Platform.runLater(() -> canvas.requestFocus());
     }
 
     public void startGame() {
         if (playBtn != null) {
-            playBtn.setDisable(true); // disable during game
+            playBtn.setDisable(true);
             playBtn.setText("Playing");
         }
         loadMazeFromDatabase();
         resetPlayer();
         draw();
+        requestCanvasFocus();
     }
 
     private void resetPlayer() {
@@ -132,14 +136,17 @@ public class MazeController {
         int nc = playerCol + dcol;
         int nr = playerRow + drow;
 
+        // Check bounds
         if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) return;
 
         int tile = maze[nr][nc];
         boolean canPassWalls = System.currentTimeMillis() < invisibleUntil;
 
+        // Check wall
         if (tile == 1 && !canPassWalls) return;
 
-        if (tile == 3) { // Exit
+        // Exit logic
+        if (tile == 3) {
             if (!keyCollected) {
                 if (status != null) status.setText("Exit locked — find the key!");
                 return;
@@ -148,16 +155,17 @@ public class MazeController {
             playerCol = nc;
             playerRow = nr;
             if (status != null) status.setText("You escaped!");
-
-            // Update score and show leaderboard
-            updateScore();
+            if (onWinCallback != null) onWinCallback.run();
             showLeaderboard();
-        } else {
-            playerCol = nc;
-            playerRow = nr;
+            return;
         }
 
-        if (tile == 2) { // Key
+        // Update player position
+        playerCol = nc;
+        playerRow = nr;
+
+        // Collect key
+        if (tile == 2) {
             keyCollected = true;
             maze[nr][nc] = 0;
             if (status != null) status.setText("Key collected! Find the exit.");
@@ -168,32 +176,38 @@ public class MazeController {
 
     private void draw() {
         if (maze == null || canvas == null) return;
+
         GraphicsContext gc = canvas.getGraphicsContext2D();
         double cellSize = Math.min(canvas.getWidth() / cols, canvas.getHeight() / rows);
-        double mazeW = cols * cellSize;
-        double mazeH = rows * cellSize;
-        double offsetX = (canvas.getWidth() - mazeW) / 2;
-        double offsetY = (canvas.getHeight() - mazeH) / 2;
+        double offsetX = (canvas.getWidth() - cols * cellSize) / 2;
+        double offsetY = (canvas.getHeight() - rows * cellSize) / 2;
 
+        // Background
         gc.setFill(Color.web("#00d4ff"));
         gc.fillRect(0, 0, canvas.getWidth(), canvas.getHeight());
 
+        // Maze
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
                 double x = offsetX + c * cellSize;
                 double y = offsetY + r * cellSize;
                 int t = maze[r][c];
+
                 gc.setFill(Color.web("#F2D16D"));
                 gc.fillRect(x, y, cellSize, cellSize);
+
                 if (t == 1) gc.setFill(Color.web("#C19A6B"));
                 if (t == 2) gc.setFill(Color.web("#FFD700"));
                 if (t == 3) gc.setFill(keyCollected ? Color.web("#DAA520") : Color.web("#8B4513"));
+
                 if (t != 0) gc.fillRect(x, y, cellSize, cellSize);
+
                 gc.setStroke(Color.web("#B58B45"));
                 gc.strokeRect(x, y, cellSize, cellSize);
             }
         }
 
+        // Player
         drawPlayer(gc, cellSize, offsetX, offsetY);
     }
 
@@ -201,9 +215,11 @@ public class MazeController {
         double px = offsetX + playerCol * cellSize + cellSize / 2.0;
         double py = offsetY + playerRow * cellSize + cellSize / 2.0;
         boolean isInvisible = System.currentTimeMillis() < invisibleUntil;
+
         gc.setStroke(isInvisible ? Color.web("#000000", 0.35) : Color.BLACK);
         gc.setFill(isInvisible ? Color.web("#5D3FD3", 0.5) : Color.web("#5D3FD3"));
         gc.setLineWidth(isInvisible ? 1 : 2);
+
         gc.strokeOval(px - cellSize * 0.15, py - cellSize * 0.3, cellSize * 0.3, cellSize * 0.3);
         gc.strokeLine(px, py - cellSize * 0.06, px, py + cellSize * 0.25);
         gc.strokeLine(px, py, px - cellSize * 0.18, py - cellSize * 0.06);
@@ -217,13 +233,6 @@ public class MazeController {
         draw();
     }
 
-    // ------------------- SCORE LOGIC -------------------
-    private void updateScore() {
-        if (joueur != null) {
-            scoreDAO.addScore(joueur, 100); // Add 100 points for completing maze
-        }
-    }
-
     private void showLeaderboard() {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fr/ece/labyrinthegame/score.fxml"));
@@ -231,16 +240,15 @@ public class MazeController {
             Stage stage = new Stage();
             stage.setTitle("Leaderboard");
             stage.setScene(new Scene(root));
-            stage.initOwner(canvas.getScene().getWindow()); // attach to main window
+            stage.initOwner(canvas.getScene().getWindow());
             stage.show();
 
-            // Enable Play Again button
             if (playBtn != null) {
                 playBtn.setText("Play Again");
                 playBtn.setDisable(false);
                 playBtn.setOnAction(e -> {
-                    stage.close();  // close leaderboard
-                    startGame();    // restart game
+                    stage.close();
+                    startGame();
                     requestCanvasFocus();
                 });
             }
@@ -249,8 +257,8 @@ public class MazeController {
             e.printStackTrace();
         }
     }
-    public void movePlayerUp() { System.out.println("↑ Haut"); }
-    public void movePlayerDown() { System.out.println("↓ Bas"); }
-    public void movePlayerLeft() { System.out.println("← Gauche"); }
-    public void movePlayerRight() { System.out.println("→ Droite"); }
+
+    public void disableMovement() {
+        gameWon = true;
+    }
 }

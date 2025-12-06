@@ -1,6 +1,7 @@
 package fr.ece.labyrinthegame;
 
 import fr.ece.labyrinthegame.Controllers.MazeController;
+import fr.ece.labyrinthegame.dao.ScoreDAO;
 import fr.ece.labyrinthegame.model.Utilisateur;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
@@ -20,12 +21,14 @@ public class JoueurInterface {
     private Utilisateur joueur;
     private MazeController mazeController;
 
-    // Labels pour timer et score
+    // Timer & score
     private Label timerLabel;
     private Label scoreLabel;
     private Timeline timeline;
-    private int elapsedSeconds = 0;
-    private int score = 0;
+    private int remainingTime = 60;
+    private int score = 60;
+
+    private ScoreDAO scoreDAO = new ScoreDAO();
 
     public JoueurInterface(Stage stage, Utilisateur joueur) {
         this.stage = stage;
@@ -41,7 +44,7 @@ public class JoueurInterface {
         BorderPane root = new BorderPane();
         root.setStyle("-fx-background-color: linear-gradient(to bottom, #0b1a29, #1a2c3e);");
 
-        // Header avec titre, timer, score et bouton déconnexion
+        // Header
         HBox header = new HBox(30);
         header.setAlignment(Pos.CENTER_LEFT);
         header.setPadding(new Insets(15));
@@ -49,10 +52,10 @@ public class JoueurInterface {
         Label titre = new Label("LABYRINTHE GAME - JEU");
         titre.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #00d4ff;");
 
-        timerLabel = new Label("Temps : 0s");
+        timerLabel = new Label("Temps : 60s");
         timerLabel.setStyle("-fx-font-size: 16px; -fx-text-fill: #ffffff; -fx-font-weight: bold;");
 
-        scoreLabel = new Label("Score : 0");
+        scoreLabel = new Label("Score : 60");
         scoreLabel.setStyle("-fx-font-size: 16px; -fx-text-fill: #ffffff; -fx-font-weight: bold;");
 
         Button btnDeconnexion = new Button("DÉCONNEXION");
@@ -72,7 +75,7 @@ public class JoueurInterface {
         header.getChildren().addAll(titre, timerLabel, scoreLabel, btnDeconnexion);
         root.setTop(header);
 
-        // Contenu principal
+        // Center content
         VBox centerContent = new VBox(20);
         centerContent.setAlignment(Pos.TOP_CENTER);
         centerContent.setPadding(new Insets(30));
@@ -91,7 +94,7 @@ public class JoueurInterface {
         );
 
         StackPane canvasContainer = new StackPane();
-        canvasContainer.setStyle("-fx-background-color: #00d4ffaa; -fx-padding: 10; -fx-background-radius: 8;");
+        canvasContainer.setStyle("-fx-background-color: #808080; -fx-padding: 10; -fx-background-radius: 8;");
         Canvas canvas = new Canvas(650, 600);
         canvas.setFocusTraversable(true);
         canvasContainer.getChildren().add(canvas);
@@ -104,75 +107,92 @@ public class JoueurInterface {
         stage.setTitle("Labyrinthe Game - Player: " + joueur.getUsername());
         stage.show();
 
-        // Initialisation du contrôleur
+        // Maze controller
         mazeController = new MazeController();
         mazeController.setPlayer(joueur);
         mazeController.bindCanvas(canvas, statusLabel, playBtn);
         mazeController.connectScene(scene);
 
-        // Action sur PLAY
-        playBtn.setOnAction(e -> {
-            statusLabel.setText("Le jeu commence !");
-            canvas.requestFocus();
-            startTimer(statusLabel); // démarrage du timer interactif
-            mazeController.startGame();
+        // STOP TIMER WHEN PLAYER WINS
+        mazeController.setOnWinCallback(() -> {
+            if (timeline != null) timeline.stop();
+            score = remainingTime;
+            scoreLabel.setText("Score : " + score);
+            saveScore();
+
+            // Reset timer and start new countdown
+            resetTimer(statusLabel);
         });
 
-        // Gestion des flèches
-        scene.setOnKeyPressed(event -> {
-            switch (event.getCode()) {
-                case UP:
-                    mazeController.movePlayerUp();
-                    incrementScore();
-                    break;
-                case DOWN:
-                    mazeController.movePlayerDown();
-                    incrementScore();
-                    break;
-                case LEFT:
-                    mazeController.movePlayerLeft();
-                    incrementScore();
-                    break;
-                case RIGHT:
-                    mazeController.movePlayerRight();
-                    incrementScore();
-                    break;
-                default:
-                    break;
-            }
+        // PLAY BUTTON
+        playBtn.setOnAction(e -> {
+            startNewGame(statusLabel);
         });
 
         Platform.runLater(canvas::requestFocus);
     }
 
-    // Méthode pour démarrer le timer interactif
+    // Start a new game
+    private void startNewGame(Label statusLabel) {
+        remainingTime = 60;
+        score = 60;
+        timerLabel.setText("Temps : 60s");
+        scoreLabel.setText("Score : 60");
+
+        if (timeline != null) timeline.stop();
+
+        mazeController.startGame();
+        resetTimer(statusLabel);
+    }
+
+    // Reset timer and start countdown
+    private void resetTimer(Label statusLabel) {
+        remainingTime = 60;
+        score = 60;
+        timerLabel.setText("Temps : 60s");
+        scoreLabel.setText("Score : 60");
+
+        startTimer(statusLabel);
+    }
+
+    // TIMER COUNTDOWN LOGIC 60 → 0
     private void startTimer(Label statusLabel) {
-        elapsedSeconds = 0;
-        timerLabel.setText("Temps : 0s");
+        if (timeline != null) timeline.stop();
 
-        if (timeline != null) {
-            timeline.stop();
-        }
-
-        timeline = new Timeline(
-                new KeyFrame(Duration.seconds(1), e -> {
-                    elapsedSeconds++;
-                    timerLabel.setText("Temps : " + elapsedSeconds + "s");
-
-                    if (elapsedSeconds >= 60) {
-                        timeline.stop();
-                        statusLabel.setText("Temps écoulé ! Game Over
-                    }
-                })
-        );
-
+        timeline = new Timeline();
         timeline.setCycleCount(Timeline.INDEFINITE);
+
+        KeyFrame keyFrame = new KeyFrame(Duration.seconds(1), event -> {
+            remainingTime--;
+
+            Platform.runLater(() -> {
+                timerLabel.setText("Temps : " + remainingTime + "s");
+                score = remainingTime;
+                scoreLabel.setText("Score : " + score);
+
+                if (remainingTime <= 0) {
+                    timeline.stop();
+                    timerLabel.setText("Temps : 0s");
+                    statusLabel.setText("Temps écoulé ! Game Over");
+                    mazeController.disableMovement();
+                    saveScore();
+
+                    // Automatically reset for next game
+                    resetTimer(statusLabel);
+                    mazeController.startGame();
+                }
+            });
+        });
+
+        timeline.getKeyFrames().add(keyFrame);
         timeline.play();
     }
 
-    // Méthode pour incrémenter le score
-    private void incrementScore() {
-        score++;
-        scoreLabel.setText("Score : " + score);
+    // Save current score to database
+    private void saveScore() {
+        if (joueur != null && score > 0) {
+            joueur.setScore(joueur.getScore() + score); // add current game score
+            scoreDAO.addScore(joueur,score); // update DB
+        }
     }
 }
